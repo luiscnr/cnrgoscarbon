@@ -8,7 +8,10 @@ import common_functions as cf
 from datetime import timezone,timedelta
 from datetime import datetime as dt
 import numpy as np
-import xarray as xr
+try:
+    import xarray as xr
+except ModuleNotFoundError:
+    print(f'[ERROR] xarray is not installed. Please install the xarray module')
 from cdom import CdomModel
 from options.options_manager import OptionsManager
 
