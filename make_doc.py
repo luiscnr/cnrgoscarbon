@@ -70,10 +70,18 @@ def get_datasets(general_model_options,input_date):
 
     return datasets
 
-def get_input_file(input_path,name_file,name_file_date_format,date_here,ref='',none_if_not_exists=True):
+def get_input_file(input_path,name_file,name_file_date_format,date_here,ref='',none_if_not_exists=True,create_sub_dirs=False):
     name_file = name_file.replace('$DATE$',date_here.strftime(name_file_date_format))
     folder_format = '%Y/%j'
-    input_file = os.path.join(input_path,date_here.strftime(folder_format),name_file)
+    input_path_date = os.path.join(input_path,date_here.strftime(folder_format))
+    if not os.path.isdir(input_path_date) and create_sub_dirs:##try to create subdirs
+        try:
+            os.makedirs(input_path_date)
+        except Exception as ex:
+            print(f'[ERROR] {input_path_date} could not be created. Exception: {ex}')
+            return None
+
+    input_file = os.path.join(input_path_date,name_file)
     if os.path.isfile(input_file):
         return input_file
     else:
@@ -162,7 +170,7 @@ def run_chl(options,input_date):
         dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
         coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
     )
-    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date, none_if_not_exists=False)
+    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date,create_sub_dirs=True, none_if_not_exists=False)
     chl.to_netcdf(file_out)
     print(f'[INFO] CHL composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
 
@@ -201,7 +209,7 @@ def run_cdom(options,input_date):
         coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
     )
 
-    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date, none_if_not_exists=False)
+    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date,create_sub_dirs=True, none_if_not_exists=False)
     acdom.to_netcdf(file_out)
     print(f'[INFO] CDOM composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
 
@@ -250,7 +258,7 @@ def run_mld(options,input_date):
         dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
         coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
     )
-    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date, none_if_not_exists=False)
+    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date, create_sub_dirs=True,none_if_not_exists=False)
     sst.to_netcdf(file_out)
     print(f'[INFO] MLD composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
 
@@ -262,10 +270,27 @@ def run_sst(options,input_date):
     composite = Composite(input_date)
     composite.set_info_var_and_files(info)
 
-    check_files, file_ref, unavailable_files = composite.check_input_files()
+    check_files, file_ref, unavailable_dates = composite.check_input_files()
     if check_files == 0 and info['download'] is None:
         print(f'[ERROR] Files to compute the chl-a composite are not available.')
         return None
+
+    if info['download'] is not None and check_files <= 1:
+        if len(composite.list_files)>1:
+            print(f'[ERROR] Download is not available for multiple list_files')
+            return None
+        print(f'[WARNING] MLD daily files are not available for {len(unavailable_dates)}/{composite.n_days} dates. Trying download....')
+        options_download = options.get_download_options(info['download'])
+        launcher = LaunchDownload(options_download, unavailable_dates)
+        if launcher.launch_download():
+            check_files, file_ref, unavailable_files = composite.check_input_files()
+            if check_files == 0:
+                print(f'[ERROR] Files to compute the MLD composite are not available.')
+                return None
+        else:
+            print(f'[ERROR] Download of files to compute the MLD composite was not successful.')
+            return None
+
 
     if info['resampler'] is not None:
         lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
@@ -281,7 +306,7 @@ def run_sst(options,input_date):
         dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
         coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
     )
-    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date, none_if_not_exists=False)
+    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date,create_sub_dirs=True, none_if_not_exists=False)
     sst.to_netcdf(file_out)
     print(f'[INFO] SST composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
 
@@ -362,7 +387,7 @@ def run_classification(options,input_date):
         }
     )
 
-    file_out = get_input_file(info['output_path'],info['output_file'],'%Y%j',input_date,none_if_not_exists=False)
+    file_out = get_input_file(info['output_path'],info['output_file'],'%Y%j',input_date,create_sub_dirs=True,none_if_not_exists=False)
     dataset_out.to_netcdf(file_out)
     print(f'[INFO] Dataset Classification and Probability saved to {file_out}')
 
@@ -381,7 +406,7 @@ def main(args_d):
     general_model_options = options.get_general_model_options()
 
     ##Getting output file
-    output_file = get_input_file(general_model_options['output_path'], general_model_options['output_file'], '%Y%j', input_date,none_if_not_exists=False)
+    output_file = get_input_file(general_model_options['output_path'], general_model_options['output_file'], '%Y%j', input_date,create_sub_dirs=True,none_if_not_exists=False)
     output_path_date = os.path.dirname(output_file)
     try:
         os.makedirs(output_path_date, exist_ok=True)
