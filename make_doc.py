@@ -74,6 +74,24 @@ def get_input_file(input_path,name_file,name_file_date_format,date_here,ref='',n
         else:
             return input_file
 
+def get_resampler_from_info_and_file_ref(info,file_ref,input_date):
+    resampler = info['resampler']
+    date_format = resampler[2] if len(resampler) == 3 else '%Y%j'
+    file_base = get_input_file(resampler[0], resampler[1], date_format, input_date)
+    lat_base,lon_base = get_lat_long_arrays(file_base)
+    lat_data,lon_data = get_lat_long_arrays(file_ref)
+    resampler = Resampler()
+    resampler.set_area_definitions_from_lat_lon_arrays(lat_base, lon_base, lat_data, lon_data)
+
+    return lat_base,lon_base,resampler
+
+def get_lat_long_arrays(file_nc):
+    dset = Dataset(file_nc)
+    lat_array = dset.variables['lat'][:]
+    lon_array = dset.variables['lon'][:]
+    dset.close()
+    return lat_array,lon_array
+
 def run_dataset(dataset_type,input_date,options):
     date_minus_1w = input_date - timedelta(days=8)
     date_minus_2w = input_date - timedelta(days=16)
@@ -85,6 +103,10 @@ def run_dataset(dataset_type,input_date,options):
         print(f'[INFO] Dataset: {dataset_type}. Starting production of SST composite for date: {date_minus_1w.strftime("%Y-%m-%d")}')
         return run_sst(options, date_minus_1w)
 
+    if dataset_type == 'MLD-1w':
+        print(f'[INFO] Dataset: {dataset_type}. Starting production of MLD composite for date: {date_minus_1w.strftime("%Y-%m-%d")}')
+        return run_mld(options, date_minus_1w)
+
     if dataset_type == 'CDOM-2w':
         print(f'[INFO] Dataset: {dataset_type}. Starting production of CDOM composite for date: {date_minus_2w.strftime("%Y-%m-%d")}')
         return run_cdom(options, date_minus_2w)
@@ -93,20 +115,61 @@ def run_dataset(dataset_type,input_date,options):
         print(f'[INFO] Dataset: {dataset_type}. Starting production of CDOM composite for date: {input_date.strftime("%Y-%m-%d")}')
         return run_cdom(options, date_minus_2w)
 
+    if dataset_type == 'CHL-1w':
+        print(f'[INFO] Dataset: {dataset_type}. Starting production of CHL composite for date: {date_minus_1w.strftime("%Y-%m-%d")}')
+        return run_chl(options, date_minus_2w)
+
+
     return None
+
+def run_chl(options,input_date):
+    info = options.get_options_as_dict('CHL_COMPOSITE')
+    composite = Composite(input_date)
+    composite.set_info_var_and_files(info)
+    check_files, file_ref, unavailable_files = composite.check_input_files()
+    if check_files == 0 and options['download'] is None:
+        print(f'[ERROR] Files to compute the chl-a composite are not available.')
+        return None
+
+    if 'resampler' in info:
+        lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
+        composite.resampler = resampler
+    else:
+        lat_base, lon_base = get_lat_long_arrays(file_ref)
+
+    array_out, indices_valid = composite.compute_composite()
+    chl = xr.DataArray(
+        np.squeeze(array_out),
+        name="CHL",  # Name the variable in the xarray
+        dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
+        coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
+    )
+    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date, none_if_not_exists=False)
+    chl.to_netcdf(file_out)
+    print(f'[INFO] CHL composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
+
+    return file_out
+
+
 
 def run_cdom(options,input_date):
     info = options.get_options_as_dict('CDOM_COMPOSITE')
     composite = Composite(input_date)
     composite.set_info_var_and_files(info)
-    lat_base, lon_base = [None]*2
-    file_ref = composite.get_file_ref()
-    if file_ref is not None:
-        if 'resampler' in info:
-            lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
-            composite.resampler = resampler
-        else:
-            lat_base, lon_base = get_lat_long_arrays(file_ref)
+    check_files, file_ref, unavailable_files = composite.check_input_files()
+
+    if check_files == 0 and options['download'] is None:
+        print(f'[ERROR] Files to compute the chl-a composite are not available.')
+        return None
+
+    if 'resampler' in info:
+        lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
+        composite.resampler = resampler
+    else:
+        lat_base, lon_base = get_lat_long_arrays(file_ref)
+
+
+
     cdomModel = CdomModel()
     cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]], array_out[indices_valid_by_band[1]], array_out[indices_valid_by_band[2]],array_out[indices_valid_by_band[3]], array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]])
     cdom_array = cdomModel.run_model()
@@ -126,21 +189,51 @@ def run_cdom(options,input_date):
 
     return file_out
 
+def run_mld(options,input_date):
+    info = options.get_options_as_dict('MLD_COMPOSITE')
+    composite = Composite(input_date)
+    composite.set_info_var_and_files(info)
+
+    check_files, file_ref, unavailable_files = composite.check_input_files()
+    if check_files == 0 and options['download'] is None:
+        print(f'[ERROR] Files to compute the chl-a composite are not available.')
+        return None
+
+    if 'resampler' in info:
+        lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
+        composite.resampler = resampler
+    else:
+        lat_base, lon_base = get_lat_long_arrays(file_ref)
+
+    array_out, indices_valid = composite.compute_composite()
+    sst = xr.DataArray(
+        np.squeeze(array_out),
+        name="MLD",  # Name the variable in the xarray
+        dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
+        coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
+    )
+    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date, none_if_not_exists=False)
+    sst.to_netcdf(file_out)
+    print(f'[INFO] MLD composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
+
+    return file_out
+
+
 def run_sst(options,input_date):
     info = options.get_options_as_dict('SST_COMPOSITE')
     composite = Composite(input_date)
     composite.set_info_var_and_files(info)
-    check_files,unavailable_files = composite.check_input_files()
-    if check_files==0 and options['download'] is None:
-        print(f'[ERROR] Files to compute the SST composite are not available.')
+
+    check_files, file_ref, unavailable_files = composite.check_input_files()
+    if check_files == 0 and options['download'] is None:
+        print(f'[ERROR] Files to compute the chl-a composite are not available.')
         return None
-    file_ref = composite.get_file_ref()
-    if file_ref is not None:
-        if 'resampler' in info:
-            lat_base,lon_base,resampler = get_resampler_from_info_and_file_ref(info,file_ref,input_date)
-            composite.resampler = resampler
-        else:
-            lat_base,lon_base = get_lat_long_arrays(file_ref)
+
+    if 'resampler' in info:
+        lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
+        composite.resampler = resampler
+    else:
+        lat_base, lon_base = get_lat_long_arrays(file_ref)
 
 
     array_out, indices_valid = composite.compute_composite()
@@ -156,29 +249,24 @@ def run_sst(options,input_date):
 
     return file_out
 
-def get_resampler_from_info_and_file_ref(info,file_ref,input_date):
-    resampler = info['resampler']
-    date_format = resampler[2] if len(resampler) == 3 else '%Y%j'
-    file_base = get_input_file(resampler[0], resampler[1], date_format, input_date)
-    lat_base,lon_base = get_lat_long_arrays(file_base)
-    lat_data,lon_data = get_lat_long_arrays(file_ref)
-    resampler = Resampler()
-    resampler.set_area_definitions_from_lat_lon_arrays(lat_base, lon_base, lat_data, lon_data)
-
-    return lat_base,lon_base,resampler
-
-def get_lat_long_arrays(file_nc):
-    dset = Dataset(file_nc)
-    lat_array = dset.variables['lat'][:]
-    lon_array = dset.variables['lon'][:]
-    dset.close()
-    return lat_array,lon_array
-
 def run_classification(options,input_date):
 
     info = options.get_options_as_dict('CLASS_COMPOSITE')
     composite = Composite(input_date)
     composite.set_info_var_and_files(info)
+
+    check_files, file_ref, unavailable_files = composite.check_input_files()
+    if check_files == 0 and options['download'] is None:
+        print(f'[ERROR] Files to compute the chl-a composite are not available.')
+        return None
+
+    if 'resampler' in info:
+        lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
+        composite.resampler = resampler
+    else:
+        lat_base, lon_base = get_lat_long_arrays(file_ref)
+
+
     array_out,indices_valid = composite.compute_composite()
     shape_out = array_out.shape[1:]
     shape_out_prob = shape_out + (17,)

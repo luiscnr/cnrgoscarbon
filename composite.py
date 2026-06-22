@@ -86,6 +86,7 @@ class Composite:
         is_file_available = np.zeros((self.n_days,n_files))
         iday = 0
         unavailable_dates = []
+        file_ref = None
         while work_date <= end_date:
             for ifile, name_file in enumerate(self.list_files):
                 input_file_format = self.list_files_format[ifile] if len(self.list_files) == len(
@@ -94,6 +95,8 @@ class Composite:
                 input_file = os.path.join(input_path_date, name_file.replace('$DATE$', work_date.strftime(input_file_format)))
                 if os.path.exists(input_file):
                     is_file_available[iday,ifile]=1
+                    if file_ref is None:
+                        file_ref = input_file
                 else:
                     work_date_str = work_date.strftime("%Y-%m-%d")
                     if work_date_str not in unavailable_dates:
@@ -107,15 +110,15 @@ class Composite:
 
         if np.min(n_files_available)==self.n_days:
             print(f'[INFO] File availability for composite is complete.')
-            return 2,unavailable_dates
+            return 2,file_ref,unavailable_dates
 
         elif np.min(n_files_available)>0:
             print(f'[WARNING] Files are not available for {len(unavailable_dates)} days')
-            return 1,unavailable_dates
+            return 1,file_ref,unavailable_dates
 
         else:
             print(f'[WARNING] Files are not available for all the days')
-            return 0,unavailable_dates
+            return 0,file_ref,unavailable_dates
 
     ##Simple average
     def compute_average(self,start_date,end_date):
