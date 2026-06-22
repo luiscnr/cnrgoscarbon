@@ -76,8 +76,17 @@ def get_input_file(input_path,name_file,name_file_date_format,date_here,ref='',n
 
 def get_resampler_from_info_and_file_ref(info,file_ref,input_date):
     resampler = info['resampler']
-    date_format = resampler[2] if len(resampler) == 3 else '%Y%j'
-    file_base = get_input_file(resampler[0], resampler[1], date_format, input_date)
+    if len(resampler)==1:
+        file_base = resampler[0]
+    else:
+        date_format = resampler[2] if len(resampler) == 3 else '%Y%j'
+        file_base = get_input_file(resampler[0], resampler[1], date_format, input_date)
+    if file_base is None:
+        print(f'[ERROR] File base for resampler could not be retrieved.')
+        return [None] * 3
+    if not os.path.isfile(file_base):
+        print(f'[ERROR] Resampler file base {file_base} is not available.')
+        return [None]*3
     lat_base,lon_base = get_lat_long_arrays(file_base)
     lat_data,lon_data = get_lat_long_arrays(file_ref)
     resampler = Resampler()
@@ -113,11 +122,11 @@ def run_dataset(dataset_type,input_date,options):
 
     if dataset_type == 'CDOM':
         print(f'[INFO] Dataset: {dataset_type}. Starting production of CDOM composite for date: {input_date.strftime("%Y-%m-%d")}')
-        return run_cdom(options, date_minus_2w)
+        return run_cdom(options, input_date)
 
     if dataset_type == 'CHL-1w':
         print(f'[INFO] Dataset: {dataset_type}. Starting production of CHL composite for date: {date_minus_1w.strftime("%Y-%m-%d")}')
-        return run_chl(options, date_minus_2w)
+        return run_chl(options, date_minus_1w)
 
 
     return None
@@ -127,11 +136,11 @@ def run_chl(options,input_date):
     composite = Composite(input_date)
     composite.set_info_var_and_files(info)
     check_files, file_ref, unavailable_files = composite.check_input_files()
-    if check_files == 0 and options['download'] is None:
+    if check_files == 0 and info['download'] is None:
         print(f'[ERROR] Files to compute the chl-a composite are not available.')
         return None
 
-    if 'resampler' in info:
+    if info['resampler'] is not None:
         lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
         composite.resampler = resampler
     else:
@@ -158,18 +167,18 @@ def run_cdom(options,input_date):
     composite.set_info_var_and_files(info)
     check_files, file_ref, unavailable_files = composite.check_input_files()
 
-    if check_files == 0 and options['download'] is None:
+    if check_files == 0 and info['download'] is None:
         print(f'[ERROR] Files to compute the chl-a composite are not available.')
         return None
 
-    if 'resampler' in info:
+    if info['resampler'] is not None:
         lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
         composite.resampler = resampler
     else:
         lat_base, lon_base = get_lat_long_arrays(file_ref)
 
-
-
+    array_out, indices_valid = composite.compute_composite()
+    indices_valid_by_band = [(np.array([x]).astype(np.int32),) + indices_valid for x in range(6)]
     cdomModel = CdomModel()
     cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]], array_out[indices_valid_by_band[1]], array_out[indices_valid_by_band[2]],array_out[indices_valid_by_band[3]], array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]])
     cdom_array = cdomModel.run_model()
@@ -195,12 +204,16 @@ def run_mld(options,input_date):
     composite.set_info_var_and_files(info)
 
     check_files, file_ref, unavailable_files = composite.check_input_files()
-    if check_files == 0 and options['download'] is None:
-        print(f'[ERROR] Files to compute the chl-a composite are not available.')
+    if check_files == 0 and info['download'] is None:
+        print(f'[ERROR] Files to compute the MLD composite are not available.')
         return None
 
-    if 'resampler' in info:
+    if info['resampler'] is not None:
         lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
+        if resampler is None:
+            print(f'[ERROR] Resampler for MLD dataset could not be initialized.')
+            return None
+
         composite.resampler = resampler
     else:
         lat_base, lon_base = get_lat_long_arrays(file_ref)
@@ -225,11 +238,11 @@ def run_sst(options,input_date):
     composite.set_info_var_and_files(info)
 
     check_files, file_ref, unavailable_files = composite.check_input_files()
-    if check_files == 0 and options['download'] is None:
+    if check_files == 0 and info['download'] is None:
         print(f'[ERROR] Files to compute the chl-a composite are not available.')
         return None
 
-    if 'resampler' in info:
+    if info['resampler'] is not None:
         lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
         composite.resampler = resampler
     else:
@@ -256,11 +269,11 @@ def run_classification(options,input_date):
     composite.set_info_var_and_files(info)
 
     check_files, file_ref, unavailable_files = composite.check_input_files()
-    if check_files == 0 and options['download'] is None:
+    if check_files == 0 and info['download'] is None:
         print(f'[ERROR] Files to compute the chl-a composite are not available.')
         return None
 
-    if 'resampler' in info:
+    if info['resampler'] is not None:
         lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
         composite.resampler = resampler
     else:
@@ -349,14 +362,19 @@ def main(args_d):
 
     dataset_dict = get_datasets(general_model_options,input_date)
     for dataset in dataset_dict:
-        if dataset_dict[dataset] is None:
+        print(f'-------------------------------------------------------------------------------------------------------')
+        if dataset_dict[dataset][0] is None:
+            print(f'[INFO] Dataset {dataset} is not available. Launched run...')
             file_out = run_dataset(dataset,input_date,options)
-            if os.path.isfile(file_out) and file_out is not None:
-                dataset_dict[dataset] = [file_out]
-                print(f'[INFO] Dataset {dataset}->{file_out}')
-            else:
+            if file_out is None:
                 print(f'[ERROR] Dataset {dataset} is not available and could not be created. DOC will not be created.')
                 return
+            elif not os.path.isfile(file_out):
+                print(f'[ERROR] {file_out} is not a valid file for dataset {dataset}')
+            else:
+                dataset_dict[dataset] = [file_out]
+                print(f'[INFO] Dataset {dataset}->{file_out}')
+
         else:
             print(f'[INFO] Dataset {dataset}->{dataset_dict[dataset][0]}')
 

@@ -101,7 +101,7 @@ class Composite:
                     work_date_str = work_date.strftime("%Y-%m-%d")
                     if work_date_str not in unavailable_dates:
                         unavailable_dates.append(work_date_str)
-                    print(f'[WARNING] {input_file} for date {date} is not available')
+                    print(f'[WARNING] {input_file} for date {work_date_str} is not available')
             work_date = work_date +timedelta(days=1)
             iday = iday + 1
 
