@@ -2,7 +2,7 @@ import argparse
 import os.path
 
 from netCDF4 import Dataset
-from pandas.core.groupby import generic
+
 
 import common_functions as cf
 from datetime import timezone,timedelta
@@ -20,6 +20,7 @@ from composite import Composite
 from Run_CLA.Run_classification import classification
 from Run_DOC import Run_DOC_model
 from resampler import Resampler
+from download import  LaunchDownload
 
 class OptionsDOC:
     def __init__(self,config_file):
@@ -44,6 +45,14 @@ class OptionsDOC:
 
     def get_general_model_options(self):
         return self.get_options_as_dict('DOC_MODEL')
+
+    def get_download_options(self,section):
+        if not self.VALID:
+            return None
+        poptions,required_list = self.cmanager.get_retrieve_options('DOWNLOAD')
+        options_dict = self.omanager.get_options_as_dict(section,poptions,required_list)
+
+        return options_dict
 
 
 def get_datasets(general_model_options,input_date):
@@ -203,10 +212,26 @@ def run_mld(options,input_date):
     composite = Composite(input_date)
     composite.set_info_var_and_files(info)
 
-    check_files, file_ref, unavailable_files = composite.check_input_files()
+    check_files, file_ref, unavailable_dates = composite.check_input_files()
     if check_files == 0 and info['download'] is None:
         print(f'[ERROR] Files to compute the MLD composite are not available.')
         return None
+
+    if info['download'] is not None and check_files <= 1:
+        if len(composite.list_files)>1:
+            print(f'[ERROR] Download is not available for multiple list_files')
+            return None
+        print(f'[WARNING] MLD daily files are not available for {len(unavailable_dates)}/{composite.n_days} dates. Trying download....')
+        options_download = options.get_download_options(info['download'])
+        launcher = LaunchDownload(options_download, unavailable_dates)
+        if launcher.launch_download():
+            check_files, file_ref, unavailable_files = composite.check_input_files()
+            if check_files == 0:
+                print(f'[ERROR] Files to compute the MLD composite are not available.')
+                return None
+        else:
+            print(f'[ERROR] Download of files to compute the MLD composite was not successful.')
+            return None
 
     if info['resampler'] is not None:
         lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
@@ -342,6 +367,10 @@ def run_classification(options,input_date):
     print(f'[INFO] Dataset Classification and Probability saved to {file_out}')
 
     return file_out
+
+
+
+
 
 def main(args_d):
     input_date = cf.get_date_arg(args_d['date'])
