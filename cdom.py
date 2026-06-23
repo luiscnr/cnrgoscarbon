@@ -3,7 +3,7 @@ import subprocess
 
 import numpy as np
 import pandas as pd
-
+from datetime import datetime as dt
 
 def loisel2014_443(diffkd):
     slope,intercept,slopex,interceptx = [0.906040175463018, -0.5259306235301482, 0.9901899987526812, -0.05217938868943062]
@@ -117,13 +117,14 @@ class CdomModel:
         return True
 
     def run_model(self,output_file=None):
+        nowstr = str(dt.now().timestamp()).replace('.','')
         if output_file is None:
-            self.output_file = os.path.join(self.path_data,'output_data_acdom.csv')
+            self.output_file = os.path.join(self.path_data,f'output_data_acdom_{nowstr}.csv')
         else:
             self.output_file = output_file
 
         if self.input_file is None:
-            self.input_file = os.path.join(self.path_data,'input_data_acdom.csv')
+            self.input_file = os.path.join(self.path_data,f'input_data_acdom_{nowstr}.csv')
 
         os.makedirs(os.path.dirname(self.output_file), exist_ok=True)
         if not os.path.isdir(os.path.dirname(self.output_file)):
