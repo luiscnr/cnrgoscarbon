@@ -168,6 +168,10 @@ class CdomModel:
             self.input_df = self.input_df.merge(acdom_df, on='id', how='left')
             acdom443_sat = np.array(self.input_df['acdom_sat'])
 
+        print(f'[INFO] Removing temporary csv files')
+        os.remove(self.input_file)
+        os.remove(self.output_file)
+
         return acdom443_sat
 
 
