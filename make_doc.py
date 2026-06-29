@@ -400,9 +400,11 @@ def run_classification(options,input_date):
 def main(args_d):
     input_date = cf.get_date_arg(args_d['date'])
     if input_date is None:
-        input_date = dt.now().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc) - timedelta(days=1)
+        return
 
     options = OptionsDOC(args_d['config_file'])
+    if not options.VALID:
+        return
     general_model_options = options.get_general_model_options()
 
     ##Getting output file
@@ -587,10 +589,11 @@ def main(args_d):
 
 if __name__ == "__main__":
     print(f'[INFO] Started CNR-GOS Carbon tool!')
-    parser = argparse.ArgumentParser(description="CNR-GOS Carbon Tool")
+    print(f'[INFO] This is the script to generate DOC products.')
+    parser = argparse.ArgumentParser(description="CNR-GOS Carbon Tool: DOC products")
     parser.add_argument("-v", "--verbose", help="Verbose mode.", action="store_true")
     parser.add_argument('-c', "--config_file", help="Config File.")
-    parser.add_argument('-only_datasets',"--only_get_datasets",help="Mode to retrieve the datasets without launching the DOD",action="store_true")
+    parser.add_argument('-only_datasets',"--only_get_datasets",help="Mode to retrieve the datasets without launching the DOC",action="store_true")
     parser.add_argument('-d', "--date",help="Input Date: YYYY-mm-dd")
     args = parser.parse_args()
     args_dict = vars(args)

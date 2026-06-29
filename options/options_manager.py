@@ -8,7 +8,9 @@ class OptionsManager:
     def __init__(self, config_file, options):
         self.options = None
         if options is None:
-            if not os.path.exists(config_file):
+            if config_file is None:
+                print(f'[ERROR] No config file was provided')
+            elif not os.path.exists(config_file):
                 print(f'[ERROR] {config_file} does not exist')
             elif not os.path.isfile(config_file):
                 print(f'[ERROR] {config_file} is not a valid file')

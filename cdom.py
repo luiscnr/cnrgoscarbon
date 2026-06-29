@@ -97,10 +97,12 @@ class CdomModel:
         print(f'[INFO] Number of data in arrays: {len(self.input_df.index)}. After dropping NaN values: {len(df1.index)}')
 
         # Save the clean DataFrame to CSV
-        self.input_file = os.path.join(self.path_data, 'input_data_acdom.csv')
+        nowstr = str(dt.now().timestamp()).replace('.', '')
+        self.input_file = os.path.join(self.path_data, f'input_data_acdom_{nowstr}.csv')
         print(f'[INFO] Saving data to {self.input_file}')
         df1.to_csv(self.input_file, sep=' ', header=None, index=None)
 
+        return nowstr
 
 
 
@@ -116,8 +118,9 @@ class CdomModel:
 
         return True
 
-    def run_model(self,output_file=None):
-        nowstr = str(dt.now().timestamp()).replace('.','')
+    def run_model(self,output_file=None,nowstr=None):
+        if nowstr is None:
+            nowstr = str(dt.now().timestamp()).replace('.','')
         if output_file is None:
             self.output_file = os.path.join(self.path_data,f'output_data_acdom_{nowstr}.csv')
         else:
