@@ -63,7 +63,7 @@ class CdomModel:
 
 
 
-    def set_df_from_arrays(self,array_412,array_443,array_490,array_510,array_560,array_670):
+    def set_df_from_arrays(self,array_412,array_443,array_490,array_510,array_560,array_670,date_here = None):
         if not check_input_data_arrays(array_412,array_443,array_490,array_510,array_560,array_670):
             return
         os.makedirs(self.path_data,exist_ok=True)
@@ -98,6 +98,9 @@ class CdomModel:
 
         # Save the clean DataFrame to CSV
         nowstr = str(dt.now().timestamp()).replace('.', '')
+        date_here_str = date_here.strftime('%Y%m%d') if date_here is not None else ''
+        nowstr = f'{date_here_str}_{nowstr}'
+
         self.input_file = os.path.join(self.path_data, f'input_data_acdom_{nowstr}.csv')
         print(f'[INFO] Saving data to {self.input_file}')
         df1.to_csv(self.input_file, sep=' ', header=None, index=None)
@@ -118,9 +121,13 @@ class CdomModel:
 
         return True
 
-    def run_model(self,output_file=None,nowstr=None):
+    def run_model(self,output_file=None,date_here = None,nowstr=None):
+
         if nowstr is None:
+            date_here_str = date_here.strftime('%Y%m%d') if date_here is not None else ''
             nowstr = str(dt.now().timestamp()).replace('.','')
+            nowstr = f'{date_here_str}_{nowstr}'
+
         if output_file is None:
             self.output_file = os.path.join(self.path_data,f'output_data_acdom_{nowstr}.csv')
         else:

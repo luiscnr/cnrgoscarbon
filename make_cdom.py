@@ -77,7 +77,7 @@ class CDOMRun:
         cdomModel = CdomModel()
         nowstr = cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]], array_out[indices_valid_by_band[1]],
                                      array_out[indices_valid_by_band[2]], array_out[indices_valid_by_band[3]],
-                                     array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]])
+                                     array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]],date_here= date_run)
         cdom_array = cdomModel.run_model(nowstr=nowstr)
         cdom_array_2d = np.ma.masked_all(array_out.shape[1:], dtype=cdom_array.dtype)
         cdom_array_2d[indices_valid] = cdom_array[:]

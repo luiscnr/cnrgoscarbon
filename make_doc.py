@@ -197,8 +197,8 @@ def run_cdom(options,input_date):
     array_out, indices_valid = composite.compute_composite()
     indices_valid_by_band = [(np.array([x]).astype(np.int32),) + indices_valid for x in range(6)]
     cdomModel = CdomModel()
-    cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]], array_out[indices_valid_by_band[1]], array_out[indices_valid_by_band[2]],array_out[indices_valid_by_band[3]], array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]])
-    cdom_array = cdomModel.run_model()
+    nowstr = cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]], array_out[indices_valid_by_band[1]], array_out[indices_valid_by_band[2]],array_out[indices_valid_by_band[3]], array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]],date_here=input_date)
+    cdom_array = cdomModel.run_model(nowstr=nowstr)
     cdom_array_2d = np.ma.masked_all(array_out.shape[1:],dtype=cdom_array.dtype)
     cdom_array_2d[indices_valid] = cdom_array[:]
 
