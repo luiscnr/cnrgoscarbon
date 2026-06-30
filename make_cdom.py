@@ -32,8 +32,8 @@ class OptionsCDOM:
         poptions,required_list = self.cmanager.get_retrieve_options(section)
         print(poptions)
         print(required_list)
-        # options_dict = self.omanager.get_options_as_dict(section,poptions,required_list)
-        # print(options_dict)
+        options_dict = self.omanager.get_options_as_dict(section,poptions,required_list)
+        print(options_dict)
         # return options_dict
         return None
 
