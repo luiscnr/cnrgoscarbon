@@ -113,27 +113,21 @@ class CDOMRun:
 
 def main(args_d):
     start_date = cf.get_date_arg(args_d['start_date'])
-    print(start_date)
     end_date = cf.get_date_arg(args_d['end_date'])
-    print(end_date)
     if start_date is None:
         return
     if end_date is None:
         end_date = start_date
-    print('123')
     options = OptionsCDOM(args_d['config_file'])
-    print('124')
     if not options.VALID:
         return
-    print('128')
     cdom_options = options.get_cdom_options()
-    print('130')
+
     work_date  = start_date
     while work_date <= end_date:
-        print('work_date:',work_date)
         print('[INFO] --------------------------------------------------------')
-        #cdom_run = CDOMRun(cdom_options)
-        #cdom_run.run_date(start_date)
+        cdom_run = CDOMRun(cdom_options)
+        cdom_run.run_date(start_date)
         print('[INFO] --------------------------------------------------------')
         work_date = work_date + timedelta(days=1)
 
@@ -141,13 +135,13 @@ def main(args_d):
 if __name__ == "__main__":
     print(f'[INFO] Started CNR-GOS Carbon tool!')
     print(f'[INFO] This is the script to generate CDOM products.')
-    parser = argparse.ArgumentParser(description="CNR-GOS Carbon Tool: CDOM products")
-    parser.add_argument("-v", "--verbose", help="Verbose mode.", action="store_true")
-    parser.add_argument('-c', "--config_file", help="Config File.")
-    #parser.add_argument('-only_datasets',"--only_get_datasets",help="Mode to retrieve the datasets without launching the DOD",action="store_true")
-    parser.add_argument('-sd', "--start_date",help="Start date: YYYY-mm-dd")
-    parser.add_argument('-ed', "--end_date", help="End date: YYYY-mm-dd")
-    args = parser.parse_args()
-    args_dict = vars(args)
-    print(args_dict)
-    main(args_dict)
+    print('ONLY TESTING')
+    # parser = argparse.ArgumentParser(description="CNR-GOS Carbon Tool: CDOM products")
+    # parser.add_argument("-v", "--verbose", help="Verbose mode.", action="store_true")
+    # parser.add_argument('-c', "--config_file", help="Config File.")
+    # #parser.add_argument('-only_datasets',"--only_get_datasets",help="Mode to retrieve the datasets without launching the DOD",action="store_true")
+    # parser.add_argument('-sd', "--start_date",help="Start date: YYYY-mm-dd")
+    # parser.add_argument('-ed', "--end_date", help="End date: YYYY-mm-dd")
+    # args = parser.parse_args()
+    # args_dict = vars(args)
+    # main(args_dict)
