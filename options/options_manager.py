@@ -411,31 +411,32 @@ class OptionsManager:
                 result[option] = poptions[option]['default']
         else:
             for option in poptions:
-                if option.endswith('_'):
-                    index = 0
-                    while self.options.has_option(section,f'{option}{index}'):
-                        key = f'{option}{index}'
-                        poptions_key = {key:poptions[option]}
-                        result[key] = self.get_option(section,key,poptions_key,None,None)
-                        index = index + 1
-                else:
-
-                    result[option] = self.get_option(section,option,poptions,None,None)
+                print('414',option)
+                # if option.endswith('_'):
+                #     index = 0
+                #     while self.options.has_option(section,f'{option}{index}'):
+                #         key = f'{option}{index}'
+                #         poptions_key = {key:poptions[option]}
+                #         result[key] = self.get_option(section,key,poptions_key,None,None)
+                #         index = index + 1
+                # else:
+                #
+                #     result[option] = self.get_option(section,option,poptions,None,None)
                     
 
-        if required is not None:
-            for r in required:
-                if not r in result:
-                    print(f'[ERROR] Option {r} is required in section {section} of the configuration file.')
-                    return None
-                if result[r] is None:
-                    print(f'[ERROR] Option {section}/{r}  of the configuration file is required.')
-                    if poptions[r]['type_param']=='file' and self.options.has_option(section,r):
-                        print(f'[ERROR] {section}/{r}: {self.options[section][r]} does not exist or is not a valid file')
-                    return None
-
-        return result
-
+        # if required is not None:
+        #     for r in required:
+        #         if not r in result:
+        #             print(f'[ERROR] Option {r} is required in section {section} of the configuration file.')
+        #             return None
+        #         if result[r] is None:
+        #             print(f'[ERROR] Option {section}/{r}  of the configuration file is required.')
+        #             if poptions[r]['type_param']=='file' and self.options.has_option(section,r):
+        #                 print(f'[ERROR] {section}/{r}: {self.options[section][r]} does not exist or is not a valid file')
+        #             return None
+    
+        #return result
+        return None
     def get_option(self,section,option,poptions,default,type_param):
 
         list_values = None
