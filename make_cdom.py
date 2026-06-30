@@ -112,24 +112,30 @@ class CDOMRun:
 
 
 def main(args_d):
+    print('115')
     start_date = cf.get_date_arg(args_d['start_date'])
+    print(start_date)
     end_date = cf.get_date_arg(args_d['end_date'])
+    print(end_date)
     if start_date is None:
         return
     if end_date is None:
         end_date = start_date
+    print(end_date)
     options = OptionsCDOM(args_d['config_file'])
+    print('126')
     if not options.VALID:
         return
-    cdom_options = options.get_cdom_options()
-
-    work_date  = start_date
-    while work_date <= end_date:
-        print('[INFO] --------------------------------------------------------')
-        cdom_run = CDOMRun(cdom_options)
-        cdom_run.run_date(start_date)
-        print('[INFO] --------------------------------------------------------')
-        work_date = work_date + timedelta(days=1)
+    print('129')
+    # cdom_options = options.get_cdom_options()
+    #
+    # work_date  = start_date
+    # while work_date <= end_date:
+    #     print('[INFO] --------------------------------------------------------')
+    #     cdom_run = CDOMRun(cdom_options)
+    #     cdom_run.run_date(start_date)
+    #     print('[INFO] --------------------------------------------------------')
+    #     work_date = work_date + timedelta(days=1)
 
 
 if __name__ == "__main__":
@@ -143,5 +149,5 @@ if __name__ == "__main__":
     parser.add_argument('-ed', "--end_date", help="End date: YYYY-mm-dd")
     args = parser.parse_args()
     args_dict = vars(args)
-    print('ONLY TESTING')
-    # main(args_dict)
+    print(args_dict)
+    main(args_dict)
