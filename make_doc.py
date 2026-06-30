@@ -199,16 +199,16 @@ def run_cdom(options,input_date):
     cdomModel = CdomModel()
     nowstr = cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]], array_out[indices_valid_by_band[1]], array_out[indices_valid_by_band[2]],array_out[indices_valid_by_band[3]], array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]],date_here=input_date)
     cdom_array = cdomModel.run_model(nowstr=nowstr)
-    if cdom_array is None:
-        retries = 5
-        index_retry = 1
-        while index_retry <= retries:
-            print(f'[INFO] Waiting for 1 minute and retrying to run the CDOM model: {index_retry}....')
-            time.sleep(60)
-            cdom_array = cdomModel.run_model(nowstr=nowstr)
-            if cdom_array is not None:
-                break
-            index_retry = index_retry + 1
+    # if cdom_array is None:
+    #     retries = 5
+    #     index_retry = 1
+    #     while index_retry <= retries:
+    #         print(f'[INFO] Waiting for 1 minute and retrying to run the CDOM model: {index_retry}....')
+    #         time.sleep(60)
+    #         cdom_array = cdomModel.run_model(nowstr=nowstr)
+    #         if cdom_array is not None:
+    #             break
+    #         index_retry = index_retry + 1
     if cdom_array is None:
         return None
 

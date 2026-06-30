@@ -1,4 +1,4 @@
-import argparse,os,time
+import argparse,os
 
 import numpy as np
 from netCDF4 import Dataset
@@ -86,16 +86,16 @@ class CDOMRun:
                                      array_out[indices_valid_by_band[2]], array_out[indices_valid_by_band[3]],
                                      array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]],date_here= date_run)
         cdom_array = cdomModel.run_model(nowstr=nowstr)
-        if cdom_array is None:
-            retries = 5
-            index_retry = 1
-            while index_retry<=retries:
-                print(f'[INFO] Waiting for 1 minute and retrying to run the CDOM model: {index_retry}....')
-                time.sleep(60)
-                cdom_array = cdomModel.run_model(nowstr=nowstr)
-                if cdom_array is not None:
-                    break
-                index_retry = index_retry + 1
+        # if cdom_array is None:
+        #     retries = 5
+        #     index_retry = 1
+        #     while index_retry<=retries:
+        #         print(f'[INFO] Waiting for 1 minute and retrying to run the CDOM model: {index_retry}....')
+        #         time.sleep(60)
+        #         cdom_array = cdomModel.run_model(nowstr=nowstr)
+        #         if cdom_array is not None:
+        #             break
+        #         index_retry = index_retry + 1
         if cdom_array is None:
             return
         cdom_array_2d = np.ma.masked_all(array_out.shape[1:], dtype=cdom_array.dtype)

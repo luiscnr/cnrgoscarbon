@@ -65,11 +65,11 @@ class CdomModel:
 
     def set_df_from_arrays(self,array_412,array_443,array_490,array_510,array_560,array_670,date_here = None):
         if not check_input_data_arrays(array_412,array_443,array_490,array_510,array_560,array_670):
-            return
+            return None
         os.makedirs(self.path_data,exist_ok=True)
         if not os.path.isdir(self.path_data):
             print(f'[ERROR] Path data {self.path_data} does not exist and could not be created. Review writing permissions.')
-            return
+            return None
 
         # make sure arrays are flatten
         if len(array_412.shape) > 2:
