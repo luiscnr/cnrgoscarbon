@@ -1,4 +1,4 @@
-import argparse,os
+import argparse,os,time
 
 import numpy as np
 from netCDF4 import Dataset
@@ -42,6 +42,13 @@ class CDOMRun:
 
     def run_date(self,date_run):
         print(f'[INFO] Running CDOM for date {date_run}')
+        file_out = cf.get_input_file(self.options_cdom['output_path'], self.options_cdom['output_file'], '%Y%j',
+                                     date_run, create_sub_dirs=True, none_if_not_exists=False)
+        if os.path.isfile(file_out) and not self.options_cdom['overwrite']:
+            print(f'[WARNING] {file_out} already exists and overwrite is set to False. Skipping date {date_run.strftime("%Y-%m-%d")}')
+            return
+
+
         list_files_format = self.options_cdom['list_files_format']
         list_files = self.options_cdom['list_files']
         list_var = self.options_cdom['list_var']
@@ -79,6 +86,18 @@ class CDOMRun:
                                      array_out[indices_valid_by_band[2]], array_out[indices_valid_by_band[3]],
                                      array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]],date_here= date_run)
         cdom_array = cdomModel.run_model(nowstr=nowstr)
+        if cdom_array is None:
+            retries = 5
+            index_retry = 1
+            while index_retry<=retries:
+                print(f'[INFO] Waiting for 1 minute and retrying to run the CDOM model: {index_retry}....')
+                time.sleep(60)
+                cdom_array = cdomModel.run_model(nowstr=nowstr)
+                if cdom_array is not None:
+                    break
+                index_retry = index_retry + 1
+        if cdom_array is None:
+            return
         cdom_array_2d = np.ma.masked_all(array_out.shape[1:], dtype=cdom_array.dtype)
         cdom_array_2d[indices_valid] = cdom_array[:]
 
@@ -88,8 +107,6 @@ class CDOMRun:
             dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
             coords={"lat": lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
         )
-
-        file_out = cf.get_input_file(self.options_cdom['output_path'], self.options_cdom['output_file'], '%Y%j', date_run, create_sub_dirs=True,none_if_not_exists=False)
         acdom.to_netcdf(file_out)
         print(f'[INFO] CDOM daily product for date {date_run.strftime("%Y-%m-%d")} was saved to {file_out}')
 

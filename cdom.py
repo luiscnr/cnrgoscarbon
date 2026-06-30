@@ -139,9 +139,9 @@ class CdomModel:
         os.makedirs(os.path.dirname(self.output_file), exist_ok=True)
         if not os.path.isdir(os.path.dirname(self.output_file)):
             print(f'[ERROR] Path data {os.path.dirname(self.output_file)} does not exist and could not be created. Review writing permissions.')
-            return
+            return None
         if not self.check_run_model():
-            return
+            return None
 
 
 
@@ -152,9 +152,14 @@ class CdomModel:
         subprocess.call(["gcc", path + "/Test_calc_Dif443.c", "-o", "Test_calc_Dif443", "function_acdom.o", "neuron_difKd_443.o", "-lm", "-Wall", "-g","-fcommon"], cwd=path)
         print(f'[INFO] Compilation done. Running using the input file: {self.input_file}')
         os.chdir(path)
-        subprocess.check_call(['./Test_calc_Dif443',self.input_file,self.output_file])
-        print(f'[INFO] aCDOM Model: Finished. Output saved to: {self.output_file}')
-
+        try:
+            subprocess.check_call(['./Test_calc_Dif443',self.input_file,self.output_file])
+            print(f'[INFO] aCDOM Model: Finished. Output saved to: {self.output_file}')
+        except Exception as e:
+            print(f'[ERROR] aCDOM Model: Failed computing dkd443. Error raised: {e}')
+            print(f'[ERROR] Removed input file: {self.input_file}')
+            os.remove(self.input_file)
+            return None
         print(f'[INFO] Computing acdom 443 using Loisel algorithm...')
         df_kd = pd.read_csv(self.output_file, na_values=-999, sep=' ')
         dkd443 = np.ma.array(df_kd.DiffKd443)
