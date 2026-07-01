@@ -442,7 +442,7 @@ class OptionsManager:
                         result[option] = self.get_option(section,option,poptions,None,None)
                     if option=='list_var':
                         result[option] = self.get_option(section,option,poptions,None,None)
-                    if output=='overwrite':
+                    if option=='overwrite':
                         result[option] = self.get_option(section,option,poptions,None,None)
                     
 
