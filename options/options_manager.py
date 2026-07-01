@@ -413,12 +413,13 @@ class OptionsManager:
             for option in poptions:
                 print('414',option)
                 if option.endswith('_'):
-                    index = 0
-                    while self.options.has_option(section,f'{option}{index}'):
-                        key = f'{option}{index}'
-                        poptions_key = {key:poptions[option]}
-                        result[key] = self.get_option(section,key,poptions_key,None,None)
-                        index = index + 1
+                    pass
+                    # index = 0
+                    # while self.options.has_option(section,f'{option}{index}'):
+                    #     key = f'{option}{index}'
+                    #     poptions_key = {key:poptions[option]}
+                    #     result[key] = self.get_option(section,key,poptions_key,None,None)
+                    #     index = index + 1
                 else:
                     result[option] = self.get_option(section,option,poptions,None,None)
                     
