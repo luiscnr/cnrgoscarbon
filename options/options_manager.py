@@ -424,8 +424,8 @@ class OptionsManager:
                     print(f'#{option}#')
                     if option=='output_path':
                         result[option] = self.get_option(section,option,poptions,None,None)
-                    # if option=='output_file':
-                    #     result[option] = self.get_option(section,option,poptions,None,None)
+                    if option=='output_file':
+                        result[option] = self.get_option(section,option,poptions,None,None)
                     # if option=='input_path':
                     #     result[option] = self.get_option(section,option,poptions,None,None)
                     # if option=='input_path_organization':
