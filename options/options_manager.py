@@ -424,18 +424,18 @@ class OptionsManager:
                     print(f'#{option}#')
                     if option=='output_path':
                         result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='output_file':
-                        result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='input_path':
-                        result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='input_path_organization':
-                        result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='list_files':
-                        result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='list_files_format':
-                        result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='list_var':
-                        result[option] = self.get_option(section,option,poptions,None,None)
+                    # if option=='output_file':
+                    #     result[option] = self.get_option(section,option,poptions,None,None)
+                    # if option=='input_path':
+                    #     result[option] = self.get_option(section,option,poptions,None,None)
+                    # if option=='input_path_organization':
+                    #     result[option] = self.get_option(section,option,poptions,None,None)
+                    # if option=='list_files':
+                    #     result[option] = self.get_option(section,option,poptions,None,None)
+                    # if option=='list_files_format':
+                    #     result[option] = self.get_option(section,option,poptions,None,None)
+                    # if option=='list_var':
+                    #     result[option] = self.get_option(section,option,poptions,None,None)
                     # if output=='overwrite':
                     #     result[option] = self.get_option(section,option,poptions,None,None)
                     
