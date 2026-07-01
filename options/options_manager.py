@@ -589,16 +589,18 @@ def get_value_param_impl(value,type,default):
         return directory
 
     if type== 'input_path':
-        print('here, input_path')
+        print('here, input_path',f'#{value}#')
         input_path = value.strip(f'"')
-        if not os.path.isdir(input_path):
-            if default is not None and os.path.isdir(default):
-                return default
-            else:
-                print(f'[WARNING] Input path {input_path} is not a valid directory')
-                return None
-        else:
-            return input_path
+        print(input_path)
+
+        # if not os.path.isdir(input_path):
+        #     if default is not None and os.path.isdir(default):
+        #         return default
+        #     else:
+        #         print(f'[WARNING] Input path {input_path} is not a valid directory')
+        #         return None
+        # else:
+        #     return input_path
 
     if type == 'int':
         return int(value.strip(f'"'))
