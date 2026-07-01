@@ -592,6 +592,7 @@ def get_value_param_impl(value,type,default):
         print('here, input_path',f'#{value}#')
         input_path = value.strip(f'"')
         print(input_path)
+        print(os.path.isdir(input_path))
 
         # if not os.path.isdir(input_path):
         #     if default is not None and os.path.isdir(default):
