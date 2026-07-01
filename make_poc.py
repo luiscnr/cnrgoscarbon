@@ -4,6 +4,7 @@ import numpy as np
 from options.options_manager import OptionsManager
 from bbp import bbp_run
 from poc import PocAlgorithms
+import xarray as xr
 
 class OptionsPOC:
     def __init__(self,config_file):
@@ -42,6 +43,20 @@ def main(args_d):
         return
 
     poc_options = options.get_poc_options()
+    chl_options = options.get_chl_options()
+
+    run_date(poc_options,chl_options,input_date)
+
+def run_date(poc_options,chl_options,input_date):
+
+    file_out = cf.get_input_file(poc_options['output_path'], poc_options['output_file'], '%Y%j', input_date,
+                                 create_sub_dirs=True, none_if_not_exists=False)
+
+    if os.path.isfile(file_out) and not poc_options['overwrite']:
+        print(f'[INFO] POC file {file_out} already exists and overwrite is set to False. Skipping date {input_date.strftime("%Y-%m-%d")}')
+        return
+
+
     bands = np.array(poc_options['bands'])
     array_rrs, valid_array, lat_base, lon_base, indices_valid = cf.get_input_valid_array_from_options(input_date,poc_options)
     if indices_valid is None:
@@ -51,7 +66,7 @@ def main(args_d):
         print(f'[ERROR] Number of bands in the Rrs array {nbands} is not equal to the number of bands of the band list given in the configuration file')
         return
     shape_orig = array_rrs.shape[1:]
-    chl_options = options.get_chl_options()
+
     array_chl, valid_chl, lat_base, lon_base, indices_chl = cf.get_input_valid_array_from_options(input_date,chl_options)
     array_chl = np.squeeze(array_chl)
 
@@ -72,13 +87,28 @@ def main(args_d):
     bbp490 = brun.run_bbp_qaa(array_rrs)
 
 
-
+    ##running poc
     poc_run = PocAlgorithms(array_rrs,bbp490,array_chl,bands=bands)
-    poc_run.run_poc_ocroc()
-    # poc_run.run_poc_le()
-    # poc_run.run_poc_tran()
-    # poc_run.run_poc_loisel()
-    # poc_run.run_owt()
+    poc_array = poc_run.run_poc_ocroc()
+    if poc_array is None:
+        return
+
+    ##creting 2d poc array
+    poc_array_2d = np.ma.masked_all(shape_orig)
+    poc_array_2d[indices_valid] = poc_array
+    print(f'[INFO] POC array completed with shape {poc_array_2d.shape}. Number of valid data: {np.ma.count(poc_array_2d)}')
+
+    poc_dataset = xr.DataArray(
+        poc_array_2d,
+        name="poc",  # Name the variable in the xarray
+        dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
+        coords={"lat": lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
+    )
+
+    poc_dataset.to_netcdf(file_out)
+    print(f'[INFO] POC daily product for date {input_date.strftime("%Y-%m-%d")} was saved to {file_out}')
+
+
 
 
 

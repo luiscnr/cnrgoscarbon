@@ -92,15 +92,15 @@ class PocAlgorithms:
 
     def run_poc_ocroc(self):
         if not self.VALID:
-            return
+            return None
         if not self.run_poc_le():
-            return
+            return None
         if not self.run_poc_tran():
-            return
+            return None
         if not self.run_poc_loisel():
-            return
+            return None
         if not self.run_owt():
-            return
+            return None
 
         flag1 = (
                 (self.Class == 0)
@@ -124,6 +124,26 @@ class PocAlgorithms:
                 + proba_tran * self.POC_Tran
                 + proba_loisel * self.POC_Loisel
         )
+
+        # flag1 : class 1 probability is ignored and other probabilities are renormalized
+        flag1[10000:40000] = True
+        if np.sum(flag1)>0:
+            denom = 1 - self.proba[0, flag1]
+            valid = denom != 0
+            flag1_indices = np.where(flag1)
+            rows = flag1_indices[0][valid]
+            poc_weight[rows] = (
+                    (proba_tran[rows] / denom[valid]) * self.POC_Tran[rows]
+                    + (proba_loisel[rows] / denom[valid]) * self.POC_Loisel[rows]
+            )
+        ##flag 2: Loisel
+        if np.sum(flag2):
+            poc_weight[flag2] = self.POC_Loisel[flag2]
+        ##flag 3 : Loisel
+        if np.sum(flag3):
+            poc_weight[flag3] = self.POC_Loisel[flag3]
+
+        return poc_weight
 
     def check_indices_bands(self):
         n_bands  = len(self.bands)
