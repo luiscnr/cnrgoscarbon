@@ -430,17 +430,20 @@ class OptionsManager:
                         result[option] = self.get_option(section,option,poptions,None,None)
                     if option=='input_path':
                         print(f'#{option}#')
+                        print(section)
+                        print(option)
+                        print(poptions)
+                        #result[option] = self.get_option(section,option,poptions,None,None)
+                    if option=='input_path_organization':
                         result[option] = self.get_option(section,option,poptions,None,None)
-                    # if option=='input_path_organization':
-                    #     result[option] = self.get_option(section,option,poptions,None,None)
-                    # if option=='list_files':
-                    #     result[option] = self.get_option(section,option,poptions,None,None)
-                    # if option=='list_files_format':
-                    #     result[option] = self.get_option(section,option,poptions,None,None)
-                    # if option=='list_var':
-                    #     result[option] = self.get_option(section,option,poptions,None,None)
-                    # if output=='overwrite':
-                    #     result[option] = self.get_option(section,option,poptions,None,None)
+                    if option=='list_files':
+                        result[option] = self.get_option(section,option,poptions,None,None)
+                    if option=='list_files_format':
+                        result[option] = self.get_option(section,option,poptions,None,None)
+                    if option=='list_var':
+                        result[option] = self.get_option(section,option,poptions,None,None)
+                    if output=='overwrite':
+                        result[option] = self.get_option(section,option,poptions,None,None)
                     
 
         # if required is not None:
@@ -457,7 +460,6 @@ class OptionsManager:
         #return result
         return None
     def get_option(self,section,option,poptions,default,type_param):
-
         list_values = None
         if poptions is not None and option in poptions.keys():
             if default is None  and 'default' in poptions[option].keys():
