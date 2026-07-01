@@ -433,6 +433,7 @@ class OptionsManager:
                         print(section)
                         print(option)
                         print(poptions)
+                        result[option] = self.kk(section,option,poptions,None,None)
                         #result[option] = self.get_option(section,option,poptions,None,None)
                     if option=='input_path_organization':
                         result[option] = self.get_option(section,option,poptions,None,None)
@@ -459,6 +460,27 @@ class OptionsManager:
 
         #return result
         return None
+
+    def kk(self,section,option,poptions,default,type_param):
+        print('doing kk')
+        list_values = None
+        if poptions is not None and option in poptions.keys():
+            if default is None and 'default' in poptions[option].keys():
+                default = poptions[option]['default']
+            if type_param is None and 'type_param' in poptions[option].keys():
+                type_param = poptions[option]['type_param']
+            if 'list_values' in poptions[option].keys():
+                list_values = poptions[option]['list_values']
+
+        if type_param is None:
+            return None
+        print(default)
+        print(type_param)
+        print(list_values)
+        print('-----------------')
+
+        return None
+
     def get_option(self,section,option,poptions,default,type_param):
         list_values = None
         if poptions is not None and option in poptions.keys():
