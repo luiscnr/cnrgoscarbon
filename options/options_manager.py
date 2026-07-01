@@ -421,7 +421,8 @@ class OptionsManager:
                     #     result[key] = self.get_option(section,key,poptions_key,None,None)
                     #     index = index + 1
                 else:
-                    result[option] = self.get_option(section,option,poptions,None,None)
+                    print(f'#{option}#')
+                    #result[option] = self.get_option(section,option,poptions,None,None)
                     
 
         # if required is not None:
