@@ -477,8 +477,8 @@ class OptionsManager:
         print(default)
         print(type_param)
         print(list_values)
-        print('-----------------')
-
+        print('----------------->',section,option,default,type_param)
+        value = self.get_value_param(section, option, default, type_param)
         return None
 
     def get_option(self,section,option,poptions,default,type_param):
@@ -589,6 +589,7 @@ def get_value_param_impl(value,type,default):
         return directory
 
     if type== 'input_path':
+        print('here, input_path')
         input_path = value.strip(f'"')
         if not os.path.isdir(input_path):
             if default is not None and os.path.isdir(default):
