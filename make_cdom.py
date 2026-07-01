@@ -1,4 +1,4 @@
-import argparse,os
+import argparse,os,time
 
 import numpy as np
 from netCDF4 import Dataset
@@ -28,14 +28,10 @@ class OptionsCDOM:
     def get_options_as_dict(self,section):
         if not self.VALID:
             return None
-        print('line 31')
         poptions,required_list = self.cmanager.get_retrieve_options(section)
-        print(poptions)
-        print(required_list)
         options_dict = self.omanager.get_options_as_dict(section,poptions,required_list)
-        print(options_dict)
-        # return options_dict
-        return None
+        return options_dict
+
 
     def get_cdom_options(self):
         return self.get_options_as_dict('CDOM_DAILY')
@@ -90,16 +86,16 @@ class CDOMRun:
                                      array_out[indices_valid_by_band[2]], array_out[indices_valid_by_band[3]],
                                      array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]],date_here= date_run)
         cdom_array = cdomModel.run_model(nowstr=nowstr)
-        # if cdom_array is None:
-        #     retries = 5
-        #     index_retry = 1
-        #     while index_retry<=retries:
-        #         print(f'[INFO] Waiting for 1 minute and retrying to run the CDOM model: {index_retry}....')
-        #         time.sleep(60)
-        #         cdom_array = cdomModel.run_model(nowstr=nowstr)
-        #         if cdom_array is not None:
-        #             break
-        #         index_retry = index_retry + 1
+        if cdom_array is None:
+            retries = 5
+            index_retry = 1
+            while index_retry<=retries:
+                print(f'[INFO] Waiting for 1 minute and retrying to run the CDOM model: {index_retry}....')
+                time.sleep(60)
+                cdom_array = cdomModel.run_model(nowstr=nowstr)
+                if cdom_array is not None:
+                    break
+                index_retry = index_retry + 1
         if cdom_array is None:
             return
         cdom_array_2d = np.ma.masked_all(array_out.shape[1:], dtype=cdom_array.dtype)
@@ -127,16 +123,16 @@ def main(args_d):
 
     if not options.VALID:
         return
-    print('129',start_date,end_date)
+
     cdom_options = options.get_cdom_options()
-    print('128')
-    # work_date  = start_date
-    # while work_date <= end_date:
-    #     print('[INFO] --------------------------------------------------------')
-    #     cdom_run = CDOMRun(cdom_options)
-    #     cdom_run.run_date(start_date)
-    #     print('[INFO] --------------------------------------------------------')
-    #     work_date = work_date + timedelta(days=1)
+
+    work_date  = start_date
+    while work_date <= end_date:
+        print('[INFO] --------------------------------------------------------')
+        cdom_run = CDOMRun(cdom_options)
+        cdom_run.run_date(start_date)
+        print('[INFO] --------------------------------------------------------')
+        work_date = work_date + timedelta(days=1)
 
 
 if __name__ == "__main__":

@@ -411,75 +411,33 @@ class OptionsManager:
                 result[option] = poptions[option]['default']
         else:
             for option in poptions:
-                print('414',option)
                 if option.endswith('_'):
-                    pass
-                    # index = 0
-                    # while self.options.has_option(section,f'{option}{index}'):
-                    #     key = f'{option}{index}'
-                    #     poptions_key = {key:poptions[option]}
-                    #     result[key] = self.get_option(section,key,poptions_key,None,None)
-                    #     index = index + 1
+                    index = 0
+                    while self.options.has_option(section,f'{option}{index}'):
+                        key = f'{option}{index}'
+                        poptions_key = {key:poptions[option]}
+                        result[key] = self.get_option(section,key,poptions_key,None,None)
+                        index = index + 1
                 else:
+                    result[option] = self.get_option(section,option,poptions,None,None)
 
-                    if option=='output_path':
-                        print(f'#{option}#')
-                        result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='output_file':
-                        print(f'#{option}#')
-                        result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='input_path':
-                        print(f'#{option}#')
-                        print(section)
-                        print(option)
-                        print(poptions)
-                        result[option] = self.kk(section,option,poptions,None,None)
-                        #result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='input_path_organization':
-                        result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='list_files':
-                        result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='list_files_format':
-                        result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='list_var':
-                        result[option] = self.get_option(section,option,poptions,None,None)
-                    if option=='overwrite':
-                        result[option] = self.get_option(section,option,poptions,None,None)
                     
 
-        # if required is not None:
-        #     for r in required:
-        #         if not r in result:
-        #             print(f'[ERROR] Option {r} is required in section {section} of the configuration file.')
-        #             return None
-        #         if result[r] is None:
-        #             print(f'[ERROR] Option {section}/{r}  of the configuration file is required.')
-        #             if poptions[r]['type_param']=='file' and self.options.has_option(section,r):
-        #                 print(f'[ERROR] {section}/{r}: {self.options[section][r]} does not exist or is not a valid file')
-        #             return None
+        if required is not None:
+            for r in required:
+                if not r in result:
+                    print(f'[ERROR] Option {r} is required in section {section} of the configuration file.')
+                    return None
+                if result[r] is None:
+                    print(f'[ERROR] Option {section}/{r}  of the configuration file is required.')
+                    if poptions[r]['type_param']=='file' and self.options.has_option(section,r):
+                        print(f'[ERROR] {section}/{r}: {self.options[section][r]} does not exist or is not a valid file')
+                    return None
 
-        #return result
-        return None
+        return result
 
-    def kk(self,section,option,poptions,default,type_param):
-        print('doing kk')
-        list_values = None
-        if poptions is not None and option in poptions.keys():
-            if default is None and 'default' in poptions[option].keys():
-                default = poptions[option]['default']
-            if type_param is None and 'type_param' in poptions[option].keys():
-                type_param = poptions[option]['type_param']
-            if 'list_values' in poptions[option].keys():
-                list_values = poptions[option]['list_values']
 
-        if type_param is None:
-            return None
-        print(default)
-        print(type_param)
-        print(list_values)
-        print('----------------->',section,option,default,type_param)
-        value = self.get_value_param(section, option, default, type_param)
-        return None
+
 
     def get_option(self,section,option,poptions,default,type_param):
         list_values = None
@@ -589,19 +547,15 @@ def get_value_param_impl(value,type,default):
         return directory
 
     if type== 'input_path':
-        print('here, input_path',f'#{value}#')
         input_path = value.strip(f'"')
-        print(input_path)
-        print(os.path.isdir(input_path))
-
-        # if not os.path.isdir(input_path):
-        #     if default is not None and os.path.isdir(default):
-        #         return default
-        #     else:
-        #         print(f'[WARNING] Input path {input_path} is not a valid directory')
-        #         return None
-        # else:
-        #     return input_path
+        if not os.path.isdir(input_path):
+            if default is not None and os.path.isdir(default):
+                return default
+            else:
+                print(f'[WARNING] Input path {input_path} is not a valid directory')
+                return None
+        else:
+            return input_path
 
     if type == 'int':
         return int(value.strip(f'"'))
