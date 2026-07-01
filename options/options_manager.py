@@ -422,7 +422,22 @@ class OptionsManager:
                     #     index = index + 1
                 else:
                     print(f'#{option}#')
-                    #result[option] = self.get_option(section,option,poptions,None,None)
+                    if output=='output_path':
+                        result[option] = self.get_option(section,option,poptions,None,None)
+                    if output=='output_file':
+                        result[option] = self.get_option(section,option,poptions,None,None)
+                    if output=='input_path':
+                        result[option] = self.get_option(section,option,poptions,None,None)
+                    if output=='input_path_organization':
+                        result[option] = self.get_option(section,option,poptions,None,None)
+                    if output=='list_files':
+                        result[option] = self.get_option(section,option,poptions,None,None)
+                    if output=='list_files_format':
+                        result[option] = self.get_option(section,option,poptions,None,None)
+                    if output=='list_var':
+                        result[option] = self.get_option(section,option,poptions,None,None)
+                    # if output=='overwrite':
+                    #     result[option] = self.get_option(section,option,poptions,None,None)
                     
 
         # if required is not None:
