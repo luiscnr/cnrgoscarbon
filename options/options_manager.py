@@ -421,13 +421,16 @@ class OptionsManager:
                     #     result[key] = self.get_option(section,key,poptions_key,None,None)
                     #     index = index + 1
                 else:
-                    print(f'#{option}#')
+
                     if option=='output_path':
+                        print(f'#{option}#')
                         result[option] = self.get_option(section,option,poptions,None,None)
                     if option=='output_file':
+                        print(f'#{option}#')
                         result[option] = self.get_option(section,option,poptions,None,None)
-                    # if option=='input_path':
-                    #     result[option] = self.get_option(section,option,poptions,None,None)
+                    if option=='input_path':
+                        print(f'#{option}#')
+                        result[option] = self.get_option(section,option,poptions,None,None)
                     # if option=='input_path_organization':
                     #     result[option] = self.get_option(section,option,poptions,None,None)
                     # if option=='list_files':
