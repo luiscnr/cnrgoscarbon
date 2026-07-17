@@ -1,5 +1,7 @@
 import numpy as np
 from Run_CLA.Run_classification import classification
+from datetime import datetime as dt
+from netCDF4 import Dataset
 
 class PocAlgorithms:
     def __init__(self,rrs_array,bbp_array,chl_array,bands=None):
@@ -18,8 +20,10 @@ class PocAlgorithms:
         self.POC_Le = None
         self.POC_Tran = None
         self.POC_Loisel = None
+        self.POC_OCROC = None
         self.Class = None
         self.proba = None
+
 
 
 
@@ -143,6 +147,8 @@ class PocAlgorithms:
         if np.sum(flag3):
             poc_weight[flag3] = self.POC_Loisel[flag3]
 
+        self.POC_OCROC = poc_weight
+
         return poc_weight
 
     def check_indices_bands(self):
@@ -174,4 +180,66 @@ class PocAlgorithms:
             self.brefs = {refs[iref]:int(min_indices[iref]) for iref in range(len(refs))}
             return True
 
+    def create_ncout(self,file_out,input_date,shape_orig,indices_valid,lat_base,lon_base):
+        print(f'[INFO] Creating output file {file_out}')
+        ncout = Dataset(file_out,'w',format='NETCDF4')
+        nlat = len(lat_base)
+        nlon = len(lon_base)
+        ncout.createDimension('lat',nlat)
+        ncout.createDimension('lon',nlon)
+        ncout.createDimension('time',1)
+        ncout.createDimension('class',17)
 
+        var_lat = ncout.createVariable('lat','f4',('lat',),complevel=6,zlib=True)
+        var_lat[:] = lat_base
+        var_lon = ncout.createVariable('lon', 'f4', ('lon',), complevel=6, zlib=True)
+        var_lon[:] = lon_base
+        var_time = ncout.createVariable('time', 'i4', ('time',), complevel=6, zlib=True)
+        var_time[:] = np.int32((input_date-dt(1981,1,1)).total_seconds())
+
+        var_class = ncout.createVariable('class', 'i4', ('class',), complevel=6, zlib=True)
+        var_class[:] = np.arange(1,18).astype(np.int32)
+
+        data_variables = ['CHL','BBP','POC_Le','POC_Tran','POC_Loisel','POC_OCROC','OWT']
+        for name_var in data_variables:
+            data_type = 'i4' if name_var=='CLASS' else 'f4'
+            ncout.createVariable(name_var,data_type,('time','lat','lon'),complevel=6,zlib=True,fill_value=-999)
+
+        array_2d_orig = np.ma.masked_all(shape_orig)
+
+        array_2d = array_2d_orig.copy()
+        array_2d[indices_valid] = self.chl_array[:]
+        ncout['CHL'][0,:] = array_2d[:]
+
+        array_2d = array_2d_orig.copy()
+        array_2d[indices_valid] = self.bbp_array[:]
+        ncout['BBP'][0,:] = array_2d[:]
+
+        array_2d = array_2d_orig.copy()
+        array_2d[indices_valid] = self.POC_Le[:]
+        ncout['POC_Le'][0,:] = array_2d[:]
+
+        array_2d = array_2d_orig.copy()
+        array_2d[indices_valid] = self.POC_Tran[:]
+        ncout['POC_Tran'][0,:] = array_2d[:]
+
+        array_2d = array_2d_orig.copy()
+        array_2d[indices_valid] = self.POC_Loisel[:]
+        ncout['POC_Loisel'][0,:] = array_2d[:]
+
+        array_2d = array_2d_orig.copy()
+        array_2d[indices_valid] = self.POC_OCROC[:]
+        ncout['POC_OCROC'][0,:] = array_2d[:]
+
+        array_2d = array_2d_orig.copy()
+        array_2d[indices_valid] = self.Class[:]
+        ncout['OWT'][0,:] = array_2d[:]
+
+        var_proba = ncout.createVariable('PROBA', data_type, ('time','class','lat', 'lon'), complevel=6, zlib=True, fill_value=-999)
+        for idx in range(17):
+            array_2d = array_2d_orig.copy()
+            array_2d[indices_valid] = self.proba[idx,:]
+            var_proba[0,idx,:,:] = array_2d[:,:]
+
+
+        ncout.close()

@@ -92,20 +92,22 @@ def run_date(poc_options,chl_options,input_date):
     poc_array = poc_run.run_poc_ocroc()
     if poc_array is None:
         return
+    poc_run.create_ncout(file_out,input_date,shape_orig,indices_valid,lat_base,lon_base)
 
-    ##creting 2d poc array
-    poc_array_2d = np.ma.masked_all(shape_orig)
-    poc_array_2d[indices_valid] = poc_array
-    print(f'[INFO] POC array completed with shape {poc_array_2d.shape}. Number of valid data: {np.ma.count(poc_array_2d)}')
 
-    poc_dataset = xr.DataArray(
-        poc_array_2d,
-        name="poc",  # Name the variable in the xarray
-        dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
-        coords={"lat": lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
-    )
-
-    poc_dataset.to_netcdf(file_out)
+    # ##creting 2d poc array
+    # poc_array_2d = np.ma.masked_all(shape_orig)
+    # poc_array_2d[indices_valid] = poc_array
+    # print(f'[INFO] POC array completed with shape {poc_array_2d.shape}. Number of valid data: {np.ma.count(poc_array_2d)}')
+    #
+    # poc_dataset = xr.DataArray(
+    #     poc_array_2d,
+    #     name="poc",  # Name the variable in the xarray
+    #     dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
+    #     coords={"lat": lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
+    # )
+    #
+    # poc_dataset.to_netcdf(file_out)
     print(f'[INFO] POC daily product for date {input_date.strftime("%Y-%m-%d")} was saved to {file_out}')
 
 

@@ -47,6 +47,7 @@ class LaunchDownload(object):
             'bucket': self.options['bucket'],
             'endpoint': self.options['endpoint'],
             'tag':self.options['tag'],
+            'remote_name_abs':self.options['remote_name_abs']
         }
         output_directory = self.options['output_path']
         ods = self.options['output_path_structure']

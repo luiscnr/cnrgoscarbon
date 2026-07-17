@@ -33,9 +33,14 @@ def get_files_by_pattern(directory, pattern):
     matching_files = glob.glob(search_path)
     return matching_files
 
-def get_input_file(input_path,name_file,name_file_date_format,date_here,ref='',none_if_not_exists=True,create_sub_dirs=False):
-    name_file = name_file.replace('$DATE$',date_here.strftime(name_file_date_format))
-    folder_format = '%Y/%j'
+def get_input_file(input_path,name_file,name_file_date_format,date_here,ref='',none_if_not_exists=True,create_sub_dirs=False,folder_format='%Y/%j',real_date=None):
+    if real_date is None:
+        name_file = name_file.replace('$DATE$',date_here.strftime(name_file_date_format))
+    else:
+        name_file = name_file.replace('$DATE$','$DATE1$_$DATE2$')
+        name_file = name_file.replace('$DATE1$', date_here.strftime(name_file_date_format))
+        name_file = name_file.replace('$DATE2$', real_date.strftime(name_file_date_format))
+    #folder_format = '%Y/%j'
     input_path_date = os.path.join(input_path,date_here.strftime(folder_format))
     if not os.path.isdir(input_path_date) and create_sub_dirs:##try to create subdirs
         try:
@@ -45,6 +50,7 @@ def get_input_file(input_path,name_file,name_file_date_format,date_here,ref='',n
             return None
 
     input_file = os.path.join(input_path_date,name_file)
+
     if os.path.isfile(input_file):
         return input_file
     else:

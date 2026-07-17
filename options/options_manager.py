@@ -89,6 +89,11 @@ class OptionsManager:
         options = self.options.options(section)
         return options
 
+    def has_section(self,section):
+        if self.options is None:
+            return False
+        return self.options.has_section(section)
+
     def get_point_args(self,section):
         return self.get_value_param(section,'point_args',None,'strlist')
 
@@ -421,6 +426,7 @@ class OptionsManager:
                 else:
                     result[option] = self.get_option(section,option,poptions,None,None)
 
+
                     
 
         if required is not None:
@@ -475,12 +481,7 @@ class OptionsManager:
         if value is None:
             return default
 
-
         return get_value_param_impl(value,type,default)
-
-
-
-
 
 def get_value_param_impl(value,type,default):
     if type == 'str':

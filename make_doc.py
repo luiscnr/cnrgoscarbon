@@ -418,6 +418,9 @@ def main(args_d):
     options = OptionsDOC(args_d['config_file'])
     if not options.VALID:
         return
+
+
+
     general_model_options = options.get_general_model_options()
 
     ##Getting output file
@@ -460,143 +463,6 @@ def main(args_d):
     DOC.to_netcdf(output_file)  # Save the DOC dataset to a netCDF file
     print(f'[INFO] DOC model saved to {output_file}')
 
-    # from composite import Composite
-    # date_minus_2w = input_date - timedelta(days=16)
-    # info = {
-    #     'input_path': '/mnt/c/DATA/INPUT_MULTI_MED',
-    #     'list_files': ['X$DATE$-rrs412-med-hr.nc','X$DATE$-rrs443-med-hr.nc','X$DATE$-rrs490-med-hr.nc','X$DATE$-rrs510-med-hr.nc',
-    #                    'X$DATE$-rrs555-med-hr.nc','X$DATE$-rrs670-med-hr.nc'],
-    #     'list_var': ['RRS412','RRS443','RRS490','RRS510','RRS555','RRS670']
-    # }
-    # composite = Composite(date_minus_2w)
-    # composite.set_info_var_and_files(info)
-    # check,unavailable_dates = composite.check_input_files()
-    # print(check, unavailable_dates)
-    # input_file_ref = os.path.join(info['input_path'],date_minus_2w.strftime('%Y'),date_minus_2w.strftime('%j'),info['list_files'][0])
-    #
-    # input_file_ref = input_file_ref.replace('$DATE$',date_minus_2w.strftime('%Y%j'))
-    # dataset = Dataset(input_file_ref)
-    # lat_base = dataset.variables['lat'][:]
-    # lon_base = dataset.variables['lon'][:]
-    # dataset.close()
-
-    ##cdom base on composite date_minus_2w
-    # composite = Composite(date_minus_2w)
-    # composite.set_info_var_and_files(info)
-    # array_out,indices_valid = composite.compute_composite()
-    # indices_valid_by_band = [(np.array([x]).astype(np.int32),)+indices_valid for x in range(6)]
-    # cdomModel = CdomModel()
-    # cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]], array_out[indices_valid_by_band[1]], array_out[indices_valid_by_band[2]],
-    #                              array_out[indices_valid_by_band[3]], array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]])
-    # cdom_array = cdomModel.run_model()
-    # cdom_array_2d = np.ma.masked_all(array_out.shape[1:],dtype=cdom_array.dtype)
-    # cdom_array_2d[indices_valid] = cdom_array[:]
-    #
-    # acdom = xr.DataArray(
-    #     cdom_array_2d,
-    #     name="Acdom_sat",  # Name the variable in the xarray
-    #     dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
-    #     coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
-    # )
-    # file_acdom = os.path.join(info['input_path'],date_minus_2w.strftime('%Y'),date_minus_2w.strftime('%j'),f'acdom_{date_minus_2w.strftime("%Y%j")}_-8D.nc')
-    # acdom.to_netcdf(file_acdom)
-
-    ##cdom composite 8D input date
-    # composite = Composite(input_date)
-    # composite.set_info_var_and_files(info)
-    # array_out,indices_valid = composite.compute_composite()
-    # if array_out is None:
-    #     return
-    # indices_valid_by_band = [(np.array([x]).astype(np.int32),)+indices_valid for x in range(6)]
-    # cdomModel = CdomModel()
-    # cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]], array_out[indices_valid_by_band[1]], array_out[indices_valid_by_band[2]],
-    #                              array_out[indices_valid_by_band[3]], array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]])
-    # cdom_array = cdomModel.run_model()
-    # cdom_array_2d = np.ma.masked_all(array_out.shape[1:],dtype=cdom_array.dtype)
-    # cdom_array_2d[indices_valid] = cdom_array[:]
-    #
-    # acdom = xr.DataArray(
-    #     cdom_array_2d,
-    #     name="Acdom_sat",  # Name the variable in the xarray
-    #     dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
-    #     coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
-    # )
-    # file_acdom = os.path.join(info['input_path'],input_date.strftime('%Y'),input_date.strftime('%j'),f'acdom_{input_date.strftime("%Y%j")}_-8D.nc')
-    # acdom.to_netcdf(file_acdom)
-
-    ##chl-8days composite for dates_minus-1w
-    # info_chl = {
-    #     'input_path': '/mnt/c/DATA/INPUT_MULTI_MED',
-    #     'list_files': ['X$DATE$-chl-med-hr.nc'],
-    #     'list_files_format': ['%Y%j'],
-    #     'list_var': ['CHL']
-    # }
-    # composite = Composite(date_minus_1w)
-    # composite.set_info_var_and_files(info_chl)
-    # array_out, indices_valid = composite.compute_composite()
-    # chl = xr.DataArray(
-    #     np.squeeze(array_out),
-    #     name="CHL",  # Name the variable in the xarray
-    #     dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
-    #     coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
-    # )
-    # file_chl_out = os.path.join(info_chl['input_path'],date_minus_1w.strftime('%Y'),date_minus_1w.strftime('%j'),f'chl_{date_minus_1w.strftime("%Y%j")}_-8D.nc')
-    # chl.to_netcdf(file_chl_out)
-
-    ##sst 8-days composite for date_minus-1w
-    # file_sst = '/mnt/c/DATA/SST/2026/143/temp_model_20260523_med.nc'
-    # dset = Dataset(file_sst)
-    # lat_sst = dset.variables['lat'][:]
-    # lon_sst = dset.variables['lon'][:]
-    # dset.close()
-    # resampler = Resampler()
-    # resampler.set_area_definitions_from_lat_lon_arrays(lat_base, lon_base, lat_sst, lon_sst)
-    # info_sst = {
-    #     'input_path': '/mnt/c/DATA/SST',
-    #     'list_files': ['temp_model_$DATE$_med.nc'],
-    #     'list_files_format': ['%Y%m%d'],
-    #     'list_var': ['thetao'],
-    #     'resampler': resampler
-    # }
-    # composite = Composite(date_minus_1w)
-    # composite.set_info_var_and_files(info_sst)
-    # array_out, indices_valid = composite.compute_composite()
-    # sst = xr.DataArray(
-    #     np.squeeze(array_out),
-    #     name="sst",  # Name the variable in the xarray
-    #     dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
-    #     coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
-    # )
-    # file_sst_out = os.path.join(info_sst['input_path'],date_minus_1w.strftime('%Y'),date_minus_1w.strftime('%j'),f'sst_{date_minus_1w.strftime("%Y%j")}_-8D.nc')
-    # sst.to_netcdf(file_sst_out)
-
-    ##mld -8 days for date_minus_-1w
-    # file_mld = '/mnt/c/DATA/SST/2026/143/20260523_d-CMCC--AMXL-MFSeas10-MEDATL.nc'
-    # dset = Dataset(file_mld)
-    # lat_mld = dset.variables['lat'][:]
-    # lon_mld = dset.variables['lon'][:]
-    # dset.close()
-    # resampler_mld = Resampler()
-    # resampler_mld.set_area_definitions_from_lat_lon_arrays(lat_base, lon_base, lat_mld, lon_mld)
-    # info_mld = {
-    #     'input_path': '/mnt/c/DATA/SST',
-    #     'list_files': ['$DATE$_d-CMCC--AMXL-MFSeas10-MEDATL.nc'],
-    #     'list_files_format': ['%Y%m%d'],
-    #     'list_var': ['mlotst'],
-    #     'resampler': resampler_mld
-    # }
-    # composite = Composite(date_minus_1w)
-    # composite.set_info_var_and_files(info_mld)
-    # array_out, indices_valid = composite.compute_composite()
-    # mld = xr.DataArray(
-    #     np.squeeze(array_out),
-    #     name="mld",  # Name the variable in the xarray
-    #     dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
-    #     coords={"lat": lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
-    # )
-    # file_mld_out = os.path.join(info_mld['input_path'], date_minus_1w.strftime('%Y'), date_minus_1w.strftime('%j'),
-    #                             f'mld_{date_minus_1w.strftime("%Y%j")}_-8D.nc')
-    # mld.to_netcdf(file_mld_out)
 
 
 
