@@ -56,10 +56,10 @@ class LaunchDownload(object):
         if self.options['output_file'] is not None:
             output_file_base = self.options['output_file']
             output_file_format = self.options['output_file_format']
-
-            for output_file in output_files:
+            date_list = self.options['date_list']
+            for date_here,output_file in zip(date_list,output_files):
                 output_name = os.path.basename(output_file)
-                date_here = dt.strptime(output_name.split('_')[0],'%Y%m%d')
+                #date_here = dt.strptime(output_name.split('_')[0],'%Y%m%d')
                 output_rename = output_file_base.replace('$DATE$',date_here.strftime(output_file_format))
                 if output_rename != output_name:
                     file_new = os.path.join(os.path.dirname(output_file),output_rename)
