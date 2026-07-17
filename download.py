@@ -56,7 +56,7 @@ class LaunchDownload(object):
         if self.options['output_file'] is not None:
             output_file_base = self.options['output_file']
             output_file_format = self.options['output_file_format']
-            date_list = self.options['date_list']
+            date_list = cmems_options['date_list']
             for date_here,output_file in zip(date_list,output_files):
                 output_name = os.path.basename(output_file)
                 #date_here = dt.strptime(output_name.split('_')[0],'%Y%m%d')
