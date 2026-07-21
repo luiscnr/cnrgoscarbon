@@ -300,13 +300,33 @@ def Run_DOC_model(datasets, date):
     
     
     # --- Reshape to 2D arrays and wrap as xarray ---
-    lat = CDOM_d.lat
-    lon = CDOM_d.lon
+    if "y" in CDOM_d.variables and "x" in CDOM_d.variables:
+        use_lat_lon = False
+        y_dim = "y"
+        x_dim = "x"
+        y_array = CDOM_d.y
+        x_array = CDOM_d.x
+        lat = CDOM_d.lat
+        lon = CDOM_d.lon
+    else:
+        y_dim = "lat"
+        x_dim = "lon"
+        y_array = CDOM_d.lat
+        x_array =  CDOM_d.lon
+        lat = None
+        lon = None
+        #lat = CDOM_d.lat
+        #lon = CDOM_d.lon
 
-    shape2D = (len(lat), len(lon))
-    doca = xr.DataArray(doca.reshape(shape2D), coords=[lat, lon], dims=["lat", "lon"])
-    docb = xr.DataArray(docb.reshape(shape2D), coords=[lat, lon], dims=["lat", "lon"])
-    docc = xr.DataArray(docc.values.reshape(shape2D), coords=[lat, lon], dims=["lat", "lon"])
+    shape2D = (len(y_array), len(x_array))
+    doca = xr.DataArray(doca.reshape(shape2D), coords=[y_array, x_array], dims=[y_dim, x_dim])
+    docb = xr.DataArray(docb.reshape(shape2D), coords=[y_array, x_array], dims=[y_dim, x_dim])
+    docc = xr.DataArray(docc.values.reshape(shape2D), coords=[y_array, x_array], dims=[y_dim, x_dim])
+
+    # shape2D = (len(lat), len(lon))
+    # doca = xr.DataArray(doca.reshape(shape2D), coords=[lat, lon], dims=["lat", "lon"])
+    # docb = xr.DataArray(docb.reshape(shape2D), coords=[lat, lon], dims=["lat", "lon"])
+    # docc = xr.DataArray(docc.values.reshape(shape2D), coords=[lat, lon], dims=["lat", "lon"])
 
     # Combine DOC predictions from all sources (Vantrepotte, Network A, and Network B).
     ComDOC = jointdoc(Proba, limit, doca, docb, docc)
@@ -319,29 +339,54 @@ def Run_DOC_model(datasets, date):
     
     # --- Create flag for Class == 1 pixels ---
     class_flag = np.where(Cla.values == 1, 1, 0).reshape(shape2D)
+    # flag_da = xr.DataArray(
+    #     data=class_flag[None, :, :],
+    #     dims=["time", "lat", "lon"],
+    #     coords={"time": [date], "lat": lat, "lon": lon},
+    #     name="class_1_flag"
+    #     )
+
+    # DOC = xr.DataArray(
+    #     data=np.reshape(ComDOC, (1, *np.shape(MLD[list(MLD.data_vars)[0]]))),  # Reshape DOC data to match the shape of CDOM
+    #     dims=["time", "lat", "lon"],  # Define dimensions: time, latitude, and longitude
+    #     coords={
+    #         'time': [date],  # Time coordinate for the current date
+    #         'lat': CDOM_d.lat,  # Latitude coordinate from the CDOM dataset
+    #         'lon': CDOM_d.lon  # Longitude coordinate from the CDOM dataset
+    #         },
+    #     name='doc'  # Name of the variable
+    #     )
+
     flag_da = xr.DataArray(
         data=class_flag[None, :, :],
-        dims=["time", "lat", "lon"],
-        coords={"time": [date], "lat": lat, "lon": lon},
+        dims=["time", y_dim, x_dim],
+        coords={"time": [date], y_dim: y_array, x_dim: x_array},
         name="class_1_flag"
-        )
-
+    )
     DOC = xr.DataArray(
-        data=np.reshape(ComDOC, (1, *np.shape(MLD[list(MLD.data_vars)[0]]))),  # Reshape DOC data to match the shape of CDOM
-        dims=["time", "lat", "lon"],  # Define dimensions: time, latitude, and longitude
-        coords={  
+        data=np.reshape(ComDOC, (1, *np.shape(MLD[list(MLD.data_vars)[0]]))),
+        # Reshape DOC data to match the shape of CDOM
+        dims=["time", y_dim, x_dim],  # Define dimensions: time, latitude, and longitude
+        coords={
             'time': [date],  # Time coordinate for the current date
-            'lat': CDOM_d.lat,  # Latitude coordinate from the CDOM dataset
-            'lon': CDOM_d.lon  # Longitude coordinate from the CDOM dataset
-            },
+            y_dim: y_array,  # Latitude coordinate from the CDOM dataset
+            x_dim: x_array  # Longitude coordinate from the CDOM dataset
+        },
         name='doc'  # Name of the variable
-        )
-    
+    )
+
+    if lat is not None and lon is not None:
+        DOC['lat'] = ((y_dim, x_dim), lat.data)
+        DOC['lon'] = ((y_dim, x_dim), lon.data)
+
+
     # --- Create Dataset with both DOC and flag ---
     DOC_ds = xr.Dataset({
         'doc': DOC,
         'class_1_flag': flag_da
         })
+
+
 
         # End timer
     end_time = time.time()
