@@ -78,7 +78,7 @@ def get_input_valid_array_from_multiple_files(date_run,input_path,input_path_org
 
     input_path_date = os.path.join(input_path, date_run.strftime(input_path_organization))
     n_var = len(list_var)
-    array_out, valid_array, lat_base, lon_base = [None] * 4
+    array_out, valid_array, info_dims = [None] * 3
     for ivar, var_name in enumerate(list_var):
         input_file_format = list_files_format[ivar] if len(list_files_format) == len(list_var) else list_files_format[0]
         input_file = list_files[ivar] if len(list_files) == len(list_var) else list_files[0]
@@ -86,9 +86,11 @@ def get_input_valid_array_from_multiple_files(date_run,input_path,input_path_org
         if os.path.exists(input_path):
             dset = Dataset(input_path)
             array_here = np.squeeze(dset.variables[var_name][:])
-            if lat_base is None and lon_base is None:
-                lat_base = dset.variables['lat'][:]
-                lon_base = dset.variables['lon'][:]
+            if info_dims is None:
+                # lat_base = dset.variables['lat'][:]
+                # lon_base = dset.variables['lon'][:]
+                info_dims = get_spatial_dims_arrays(None,dset)
+
             dset.close()
             if array_out is None:
                 array_out = np.ma.masked_all((n_var,) + array_here.shape)
@@ -101,4 +103,42 @@ def get_input_valid_array_from_multiple_files(date_run,input_path,input_path_org
             print(f'[ERROR] File {input_path} is not available')
     indices_valid = np.where(valid_array == 1) if valid_array is not None else None
 
-    return array_out, valid_array, lat_base, lon_base, indices_valid
+    return array_out, valid_array, info_dims, indices_valid
+
+def get_spatial_dims_arrays(file_nc,dset):
+    y_array,x_array = None,None
+    y_name, x_name = None, None
+    lat_name,lon_name = None,None
+    if file_nc is not None and dset is None:
+        dset = Dataset(file_nc)
+    for name in dset.variables:
+        if name.lower().startswith('lat'):
+            lat_name = name
+        if name.lower().startswith('lon'):
+            lon_name = name
+        var_dimensions = dset.variables[name].dimensions
+        if len(var_dimensions)==3 and len(dset.dimensions[var_dimensions[0]])==1:
+            y_name = var_dimensions[1]
+            y_array = dset.variables[y_name][:]
+            x_name = var_dimensions[2]
+            x_array = dset.variables[x_name][:]
+    lat_array, lon_array = None,None
+    if lat_name != y_name and lon_name != x_name:
+        lat_array = dset.variables[lat_name][:]
+        lon_array = dset.variables[lon_name][:]
+
+    if file_nc is not None:
+        dset.close()
+
+    info_dims = {
+        'y_name': y_name,
+        'x_name': x_name,
+        'y_array': y_array,
+        'x_array': x_array,
+        'lat_name': lat_name,
+        'lon_name': lon_name,
+        'lat_array': lat_array,
+        'lon_array': lon_array
+    }
+
+    return info_dims

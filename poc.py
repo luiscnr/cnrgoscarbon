@@ -180,30 +180,45 @@ class PocAlgorithms:
             self.brefs = {refs[iref]:int(min_indices[iref]) for iref in range(len(refs))}
             return True
 
-    def create_ncout(self,file_out,input_date,shape_orig,indices_valid,lat_base,lon_base):
+    def create_ncout(self,file_out,input_date,shape_orig,indices_valid,info_dims):
         print(f'[INFO] Creating output file {file_out}')
         ncout = Dataset(file_out,'w',format='NETCDF4')
-        nlat = len(lat_base)
-        nlon = len(lon_base)
-        ncout.createDimension('lat',nlat)
-        ncout.createDimension('lon',nlon)
+        y_array = info_dims['y_array']
+        x_array = info_dims['x_array']
+        ny = len(y_array)
+        nx = len(x_array)
+        ncout.createDimension(info_dims['y_name'],ny)
+        ncout.createDimension(info_dims['x_name'],nx)
         ncout.createDimension('time',1)
         ncout.createDimension('class',17)
 
-        var_lat = ncout.createVariable('lat','f4',('lat',),complevel=6,zlib=True)
-        var_lat[:] = lat_base
-        var_lon = ncout.createVariable('lon', 'f4', ('lon',), complevel=6, zlib=True)
-        var_lon[:] = lon_base
+        print('[INFO] Creating dimension variables...')
+        var_y = ncout.createVariable(info_dims['y_name'],'f4',(info_dims['y_name'],),complevel=6,zlib=True)
+        var_y[:] = info_dims['y_array']
+        var_x = ncout.createVariable(info_dims['x_name'], 'f4', (info_dims['x_name'],), complevel=6, zlib=True)
+        var_x[:] = info_dims['x_array']
         var_time = ncout.createVariable('time', 'i4', ('time',), complevel=6, zlib=True)
         var_time[:] = np.int32((input_date-dt(1981,1,1)).total_seconds())
 
+        #lat_array and lon_array are different from y_array and x_array (e.g. for the Arc)
+        if info_dims['lat_name'] != info_dims['y_name'] and info_dims['lon_name'] != info_dims['x_name']:
+            lat_array = info_dims['lat_array']
+            lon_array = info_dims['lon_array']
+            if len(lat_array.shape)==2 and len(lon_array.shape)==2 and lat_array.shape==lon_array.shape:
+                print(f'[INFO] Creating non-dimensional latitude/longitude variables...')
+                dims_lat_lon = (info_dims['y_name'],info_dims['x_name'])
+                var_lat = ncout.createVariable('lat','f4',dims_lat_lon,complevel=6,zlib=True)
+                var_lat[:] = lat_array
+                var_lon = ncout.createVariable('lon', 'f4', dims_lat_lon, complevel=6, zlib=True)
+                var_lon[:] = lon_array
+
         var_class = ncout.createVariable('class', 'i4', ('class',), complevel=6, zlib=True)
         var_class[:] = np.arange(1,18).astype(np.int32)
-
+        print('[INFO] Creating data variables...')
         data_variables = ['CHL','BBP','POC_Le','POC_Tran','POC_Loisel','POC_OCROC','OWT']
         for name_var in data_variables:
             data_type = 'i4' if name_var=='CLASS' else 'f4'
-            ncout.createVariable(name_var,data_type,('time','lat','lon'),complevel=6,zlib=True,fill_value=-999)
+            ncout.createVariable(name_var,data_type,('time',info_dims['y_name'],info_dims['x_name']),complevel=6,zlib=True,fill_value=-999)
 
         array_2d_orig = np.ma.masked_all(shape_orig)
 
@@ -235,7 +250,7 @@ class PocAlgorithms:
         array_2d[indices_valid] = self.Class[:]
         ncout['OWT'][0,:] = array_2d[:]
 
-        var_proba = ncout.createVariable('PROBA', data_type, ('time','class','lat', 'lon'), complevel=6, zlib=True, fill_value=-999)
+        var_proba = ncout.createVariable('PROBA', data_type, ('time','class',info_dims['y_name'], info_dims['x_name']), complevel=6, zlib=True, fill_value=-999)
         for idx in range(17):
             array_2d = array_2d_orig.copy()
             array_2d[indices_valid] = self.proba[idx,:]

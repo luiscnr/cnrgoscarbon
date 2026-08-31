@@ -58,7 +58,7 @@ def run_date(poc_options,chl_options,input_date):
 
 
     bands = np.array(poc_options['bands'])
-    array_rrs, valid_array, lat_base, lon_base, indices_valid = cf.get_input_valid_array_from_options(input_date,poc_options)
+    array_rrs, valid_array, info_dims, indices_valid = cf.get_input_valid_array_from_options(input_date,poc_options)
     if indices_valid is None:
         return
     nbands = array_rrs.shape[0]
@@ -67,7 +67,7 @@ def run_date(poc_options,chl_options,input_date):
         return
     shape_orig = array_rrs.shape[1:]
 
-    array_chl, valid_chl, lat_base, lon_base, indices_chl = cf.get_input_valid_array_from_options(input_date,chl_options)
+    array_chl, valid_chl, info_dims, indices_chl = cf.get_input_valid_array_from_options(input_date,chl_options)
     array_chl = np.squeeze(array_chl)
 
     if array_chl.shape != shape_orig:
@@ -92,7 +92,7 @@ def run_date(poc_options,chl_options,input_date):
     poc_array = poc_run.run_poc_ocroc()
     if poc_array is None:
         return
-    poc_run.create_ncout(file_out,input_date,shape_orig,indices_valid,lat_base,lon_base)
+    poc_run.create_ncout(file_out,input_date,shape_orig,indices_valid,info_dims)
 
 
     # ##creting 2d poc array
