@@ -386,12 +386,10 @@ def Run_DOC_model(datasets, date):
         'class_1_flag': flag_da
         })
 
-
-
-        # End timer
+    # End timer
     end_time = time.time()
     
-   
+
     #Calculate elapsed time minutes
     elapsed_time = (end_time - start_time)/60
     print("Elapsed time: ", elapsed_time) 

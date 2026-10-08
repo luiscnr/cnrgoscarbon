@@ -60,6 +60,27 @@ def get_input_file(input_path,name_file,name_file_date_format,date_here,ref='',n
         else:
             return input_file
 
+##first file from the list of input files
+def get_reference_file_and_sources(date_run,options):
+    input_path = options['input_path'] if 'input_path' in options else None
+    input_path_organization = options['input_path_organization'] if 'input_path_organization' in options else None
+    list_files = options['list_files'] if 'list_files' in options else None
+    list_files_format = options['list_files_format'] if 'list_files_format' in options else None
+
+    if input_path is None or input_path_organization is None or list_files is None or list_files_format is None:
+        return None
+    reference_file = None
+    source_name_files = []
+    for ifile in range(len(list_files)):
+        iformat = ifile if len(list_files_format)==len(list_files) else 0
+        this_file = get_input_file(input_path,list_files[ifile],list_files_format[iformat],date_run,folder_format=input_path_organization)
+        if this_file is not None:
+            if reference_file is None:
+                reference_file = this_file
+            source_name_files.append(os.path.basename(this_file))
+    return reference_file,source_name_files
+
+
 def get_input_valid_array_from_options(date_run,options):
     input_path = options['input_path'] if 'input_path' in options else None
     input_path_organization = options['input_path_organization'] if 'input_path_organization' in options else None
@@ -121,6 +142,11 @@ def get_spatial_dims_arrays(file_nc,dset):
             y_name = var_dimensions[1]
             y_array = dset.variables[y_name][:]
             x_name = var_dimensions[2]
+            x_array = dset.variables[x_name][:]
+        if len(var_dimensions)==2:
+            y_name = var_dimensions[0]
+            y_array = dset.variables[y_name][:]
+            x_name = var_dimensions[1]
             x_array = dset.variables[x_name][:]
     lat_array, lon_array = None,None
     if lat_name != y_name and lon_name != x_name:

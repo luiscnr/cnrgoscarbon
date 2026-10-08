@@ -125,6 +125,9 @@ class Mapper:
         except Exception as ex:
             print(f'[ERROR] Error getting variables from input file {input_file}. Exception: {ex}')
             return
+        if len(data_array.shape) == 3:
+            print(f'[WARNING] 3-D array, taking the first dimension for axis 0 (surface layer for model data). Dimensions: {data_array.shape[1]}x{data_array.shape[2]}')
+            data_array = np.squeeze(data_array[0,:,:])
         output_file_path,file_format = self.get_output_file(maps_options,name_var,work_date,real_date)
         if output_file_path is None:
             return
@@ -246,12 +249,12 @@ class Mapper:
         ax.set_extent(extent, crs=ccrs.PlateCarree())
 
         #add land
-        land_50m = cfeature.NaturalEarthFeature('physical', 'land', '10m', edgecolor='black',facecolor=cfeature.COLORS['land'])
-        ax.add_feature(land_50m)
+        #land_50m = cfeature.NaturalEarthFeature('physical', 'land', '10m', edgecolor='black',facecolor=cfeature.COLORS['land'])
+        #ax.add_feature(land_50m)
 
         #add costline
-        # ax.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black', linewidth=0.5)
-        # ax.coastlines(resolution='10m')
+        #ax.add_feature(cfeature.LAND, zorder=0, edgecolor='black', linewidth=0.5)
+        ax.coastlines(resolution='10m',linewidth=0.5)
 
         # grid lines
         gl = ax.gridlines(draw_labels=True, dms=True, x_inline=False, y_inline=False, linewidth=0.5, linestyle='dotted')
@@ -334,7 +337,7 @@ def main(args_d):
         while work_date <= end_date:
             print(f'[INFO] --------------------------------------------------------------------------------------------')
             print(f'[INFO] Work date for map generation: {work_date.strftime("%Y-%m-%d")}')
-            datasets = md.get_datasets(general_model_options,work_date)
+            datasets = md.get_datasets(general_model_options,options,work_date)
             datasets['DOC'] = cf.get_input_file(general_model_options['output_path'], general_model_options['output_file'], '%Y%j', work_date,create_sub_dirs=False,none_if_not_exists=False)
             mapper.create_maps(work_date,datasets)
             work_date += timedelta(days=1)

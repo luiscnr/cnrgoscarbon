@@ -11,7 +11,8 @@ class Resampler:
         self.info_nn = {'valid_input_index':None,'valid_output_index':None,'index_array':None,'distance_array':None,'output_shape':None}
 
 
-    def set_area_definitions_from_lat_lon_arrays(self,lat_base,lon_base,lat_data,lon_data,resolution=10000.0,n_neighbours=1):
+    def set_area_definitions_from_lat_lon_arrays(self,lat_base,lon_base,lat_data,lon_data,resolution=10000,n_neighbours=1):
+
         self.base_area_definition  = get_area_definition_from_lat_lon_arrays(lat_base,lon_base)
         self.data_area_definition  = get_area_definition_from_lat_lon_arrays(lat_data,lon_data)
         self.set_info_nn(resolution,n_neighbours,ny=len(lat_base),nx=len(lon_base))
@@ -97,13 +98,17 @@ class Resampler:
         print('Lon max: ', lonmax)
 
 def get_area_definition_from_lat_lon_arrays(lat_array,lon_array):
-    projection = {'proj': 'eqc', 'lat_ts': 0, 'lat_0': 0, 'lon_0': 0, 'x_0': 0, 'y_0': 0, 'units': 'm', 'type': 'crs'}
-    ny = len(lat_array)
-    nx = len(lon_array)
-    yspace = np.mean(np.diff(lat_array)) / 2
-    xspace = np.mean(np.diff(lon_array)) / 2
+    # projection = {'proj': 'eqc', 'lat_ts': 0, 'lat_0': 0, 'lon_0': 0, 'x_0': 0, 'y_0': 0, 'units': 'm', 'type': 'crs'}
+    # ny = len(lat_array)
+    # nx = len(lon_array)
+    # yspace = np.mean(np.abs(np.diff(lat_array))) / 2
+    # xspace = np.mean(np.abs(np.diff(lon_array))) / 2
+    #
+    #
+    # gd = AreaDefinition.from_extent('base', projection, [ny, nx],
+    #                                 [np.min(lon_array) - xspace, np.min(lat_array) - yspace, np.max(lon_array) + xspace,
+    #                                  np.max(lat_array) + yspace], units='metres')
 
-    gd = AreaDefinition.from_extent('base', projection, [ny, nx],
-                                    [np.min(lon_array) - xspace, np.min(lat_array) - yspace, np.max(lon_array) + xspace,
-                                     np.max(lat_array) + yspace], units='degrees')
+    lons,lats = np.meshgrid(lon_array,lat_array)
+    gd = GridDefinition(lons=lons,lats=lats)
     return gd

@@ -75,31 +75,37 @@ class CDOMRun:
                     valid_array = np.where(array_here.mask == False, 1, 0)
                 else:
                     valid_array = np.logical_and(valid_array, np.where(array_here.mask == False, 1, 0))
+            else:
+                print(f'[ERROR] File {input_path} is required but it is not available for running the daily CDOM')
+                return
+        if array_out is None:
+            return
 
         indices_valid = np.where(valid_array == 1) if valid_array is not None else None
+        n_valid = len(indices_valid[0])
         if indices_valid is not None:
-            print(f'[INFO] Number of valid pixels common for all the bands: {len(indices_valid[0])}')
-
-        indices_valid_by_band = [(np.array([x]).astype(np.int32),) + indices_valid for x in range(6)]
-        cdomModel = CdomModel()
-        nowstr = cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]], array_out[indices_valid_by_band[1]],
-                                     array_out[indices_valid_by_band[2]], array_out[indices_valid_by_band[3]],
-                                     array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]],date_here= date_run)
-        cdom_array = cdomModel.run_model(nowstr=nowstr)
-        if cdom_array is None:
-            retries = 5
-            index_retry = 1
-            while index_retry<=retries:
-                print(f'[INFO] Waiting for 1 minute and retrying to run the CDOM model: {index_retry}....')
-                time.sleep(60)
-                cdom_array = cdomModel.run_model(nowstr=nowstr)
-                if cdom_array is not None:
-                    break
-                index_retry = index_retry + 1
-        if cdom_array is None:
-            return
-        cdom_array_2d = np.ma.masked_all(array_out.shape[1:], dtype=cdom_array.dtype)
-        cdom_array_2d[indices_valid] = cdom_array[:]
+            print(f'[INFO] Number of valid pixels common for all the bands: {n_valid}')
+        cdom_array_2d = np.ma.masked_all(array_out.shape[1:], dtype=np.float64)
+        if n_valid>0:
+            indices_valid_by_band = [(np.array([x]).astype(np.int32),) + indices_valid for x in range(6)]
+            cdomModel = CdomModel()
+            nowstr = cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]], array_out[indices_valid_by_band[1]],
+                                        array_out[indices_valid_by_band[2]], array_out[indices_valid_by_band[3]],
+                                        array_out[indices_valid_by_band[4]], array_out[indices_valid_by_band[5]],date_here= date_run)
+            cdom_array = cdomModel.run_model(nowstr=nowstr)
+            if cdom_array is None:
+                retries = 5
+                index_retry = 1
+                while index_retry<=retries:
+                    print(f'[INFO] Waiting for 1 minute and retrying to run the CDOM model: {index_retry}....')
+                    time.sleep(60)
+                    cdom_array = cdomModel.run_model(nowstr=nowstr)
+                    if cdom_array is not None:
+                        break
+                    index_retry = index_retry + 1
+            if cdom_array is None:
+                return
+            cdom_array_2d[indices_valid] = cdom_array[:]
 
         acdom = xr.DataArray(
             cdom_array_2d,
@@ -125,6 +131,8 @@ def main(args_d):
         return
 
     cdom_options = options.get_cdom_options()
+    if cdom_options is None:
+        return
 
     work_date  = start_date
     while work_date <= end_date:

@@ -1,6 +1,7 @@
 import numpy as np
 from Run_CLA.Run_classification import classification
 from datetime import datetime as dt
+from datetime import timezone
 from netCDF4 import Dataset
 
 class PocAlgorithms:
@@ -180,9 +181,15 @@ class PocAlgorithms:
             self.brefs = {refs[iref]:int(min_indices[iref]) for iref in range(len(refs))}
             return True
 
-    def create_ncout(self,file_out,input_date,shape_orig,indices_valid,info_dims):
+    def create_ncout(self,file_out,input_date,shape_orig,indices_valid,info_dims,file_reference=None,name_sources = None):
         print(f'[INFO] Creating output file {file_out}')
         ncout = Dataset(file_out,'w',format='NETCDF4')
+        dref  = None
+        if file_reference is not None:
+            try:
+                dref = Dataset(file_reference,'r')
+            except Exception as ex:
+                print(f'[WARNING] Reference file could not be opened. Some attributes could not be added. Excption: {ex}')
         y_array = info_dims['y_array']
         x_array = info_dims['x_array']
         ny = len(y_array)
@@ -195,10 +202,18 @@ class PocAlgorithms:
         print('[INFO] Creating dimension variables...')
         var_y = ncout.createVariable(info_dims['y_name'],'f4',(info_dims['y_name'],),complevel=6,zlib=True)
         var_y[:] = info_dims['y_array']
+        if dref is not None and info_dims['y_name'] in dref.variables:
+            var_y.setncatts(dref.variables[info_dims['y_name']].__dict__)
+
         var_x = ncout.createVariable(info_dims['x_name'], 'f4', (info_dims['x_name'],), complevel=6, zlib=True)
         var_x[:] = info_dims['x_array']
+        if dref is not None and info_dims['x_name'] in dref.variables:
+            var_x.setncatts(dref.variables[info_dims['x_name']].__dict__)
+
         var_time = ncout.createVariable('time', 'i4', ('time',), complevel=6, zlib=True)
         var_time[:] = np.int32((input_date-dt(1981,1,1)).total_seconds())
+        if dref is not None and 'time' in dref.variables:
+            var_time.setncatts(dref.variables['time'].__dict__)
 
         #lat_array and lon_array are different from y_array and x_array (e.g. for the Arc)
         if info_dims['lat_name'] != info_dims['y_name'] and info_dims['lon_name'] != info_dims['x_name']:
@@ -209,13 +224,18 @@ class PocAlgorithms:
                 dims_lat_lon = (info_dims['y_name'],info_dims['x_name'])
                 var_lat = ncout.createVariable('lat','f4',dims_lat_lon,complevel=6,zlib=True)
                 var_lat[:] = lat_array
+                if dref is not None and info_dims['lat_name'] in dref.variables:
+                    var_lat.setncatts(dref.variables[info_dims['lat_name']].__dict__)
+
                 var_lon = ncout.createVariable('lon', 'f4', dims_lat_lon, complevel=6, zlib=True)
                 var_lon[:] = lon_array
+                if dref is not None and info_dims['lon_name'] in dref.variables:
+                    var_lat.setncatts(dref.variables[info_dims['lon_name']].__dict__)
 
         var_class = ncout.createVariable('class', 'i4', ('class',), complevel=6, zlib=True)
         var_class[:] = np.arange(1,18).astype(np.int32)
         print('[INFO] Creating data variables...')
-        data_variables = ['CHL','BBP','POC_Le','POC_Tran','POC_Loisel','POC_OCROC','OWT']
+        data_variables = ['CHL','BBP','POC_Le','POC_Tran','POC_Loisel','POC','OWT']
         for name_var in data_variables:
             data_type = 'i4' if name_var=='CLASS' else 'f4'
             ncout.createVariable(name_var,data_type,('time',info_dims['y_name'],info_dims['x_name']),complevel=6,zlib=True,fill_value=-999)
@@ -242,19 +262,35 @@ class PocAlgorithms:
         array_2d[indices_valid] = self.POC_Loisel[:]
         ncout['POC_Loisel'][0,:] = array_2d[:]
 
+        ##POC_OCROC->POC
         array_2d = array_2d_orig.copy()
         array_2d[indices_valid] = self.POC_OCROC[:]
-        ncout['POC_OCROC'][0,:] = array_2d[:]
+        ncout['POC'][0,:] = array_2d[:]
+        ncout['POC'].standard_name = 'mass_concentration_of_particulate_organic_matter_expressed_as_carbon_in_sea_water'
+        ncout['POC'].missing_value = -999.0
+        ncout['POC'].long_name = 'Particulate Organic Carbon concentration'
+        ncout['POC'].units = 'milligram m^-3'
+        ncout['POC'].type = 'surface'
 
         array_2d = array_2d_orig.copy()
         array_2d[indices_valid] = self.Class[:]
         ncout['OWT'][0,:] = array_2d[:]
 
-        var_proba = ncout.createVariable('PROBA', data_type, ('time','class',info_dims['y_name'], info_dims['x_name']), complevel=6, zlib=True, fill_value=-999)
+        var_proba = ncout.createVariable('PROBA', 'f4', ('time','class',info_dims['y_name'], info_dims['x_name']), complevel=6, zlib=True, fill_value=-999)
         for idx in range(17):
             array_2d = array_2d_orig.copy()
             array_2d[indices_valid] = self.proba[idx,:]
             var_proba[0,idx,:,:] = array_2d[:,:]
 
+        if dref is not None:
+            global_attributes = dref.__dict__
+            ncout.setncatts(global_attributes)
+            ncout.source_files = ",".join(name_sources) if name_sources is not None else ''
+        now = dt.now().astimezone(timezone.utc)
+        ncout.creation_date = now.strftime('%a %b %d %Y')
+        ncout.creation_time = now.strftime('%H:%M:%S')
+
+        if dref is not None:
+            dref.close()
 
         ncout.close()

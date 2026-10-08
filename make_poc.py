@@ -56,6 +56,12 @@ def run_date(poc_options,chl_options,input_date):
         print(f'[INFO] POC file {file_out} already exists and overwrite is set to False. Skipping date {input_date.strftime("%Y-%m-%d")}')
         return
 
+    reference_file, name_sources = cf.get_reference_file_and_sources(input_date,poc_options)
+    if reference_file is None:
+        print(f'[ERROR] Reference file for POC processing could not be found.')
+        return
+    else:
+        print(f'[INFO] Reference file for getting global attributes for POC processing: {reference_file}')
 
     bands = np.array(poc_options['bands'])
     array_rrs, valid_array, info_dims, indices_valid = cf.get_input_valid_array_from_options(input_date,poc_options)
@@ -92,7 +98,8 @@ def run_date(poc_options,chl_options,input_date):
     poc_array = poc_run.run_poc_ocroc()
     if poc_array is None:
         return
-    poc_run.create_ncout(file_out,input_date,shape_orig,indices_valid,info_dims)
+
+    poc_run.create_ncout(file_out,input_date,shape_orig,indices_valid,info_dims,file_reference=reference_file,name_sources=name_sources)
 
 
     # ##creting 2d poc array

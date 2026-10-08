@@ -1,9 +1,12 @@
 import os
 import subprocess
-
+import xarray as xr
 import numpy as np
 import pandas as pd
 from datetime import datetime as dt
+from datetime import timedelta
+from composite import Composite
+import common_functions as cf
 
 def loisel2014_443(diffkd):
     slope,intercept,slopex,interceptx = [0.906040175463018, -0.5259306235301482, 0.9901899987526812, -0.05217938868943062]
@@ -47,6 +50,127 @@ def check_shape(array,shape_ref,wl_ref):
         print(f'[ERROR] Array at {wl_ref} nm ({array.shape}) has a different shape than reference (wl=412 nm): ({shape_ref})')
         return False
     return True
+
+def launch_multiple_cdom_files(input_date,info):
+    if info['file_cdom'] is None:
+        print(f'[ERROR] Option file_cdom with the format of the CDOM files including DATA key work is required')
+        return None
+    if info['input_path_cdom'] is None:
+        info['input_path_cdom'] = info['input_path']
+    if info['input_path_cdom_organization'] is None:
+        info['input_path_cdom_organization'] = info['input_path_organization']
+    info_cdom = info.copy()
+    info_cdom['input_path'] = info['input_path_cdom']
+    info_cdom['input_path_organization'] = info['input_path_cdom_organization']
+    info_cdom['list_files'] = [info['file_cdom']]
+    info_cdom['list_files_format'] = [info['file_cdom_format']]
+    info_cdom['list_var'] = [info['var_cdom']]
+
+    week = 0
+    if 'week' in info and info['week'] is not None:
+        week = int(info['week'])
+    dates_key = f'dates_{int(week * (-1))}w'
+
+
+    composite = Composite(input_date)
+    composite.set_info_var_and_files(info_cdom)
+    #print(composite.list_var,info_cdom['list_var'])
+    check_files, file_ref, unavailable_files = composite.check_input_files()
+    if len(unavailable_files)==0:
+        info_dims = cf.get_spatial_dims_arrays(file_ref, None)
+
+    if len(unavailable_files) > 0:
+        for unavailable_date in unavailable_files:
+            print(f'[INFO] Check CDOM for date: {unavailable_date}')
+            input_date_here = dt.strptime(unavailable_date,'%Y-%m-%d')
+            composite_day = Composite(input_date_here)
+            info_day = info.copy()
+            info_day['week'] = 0
+            info_day['dates_0w'] = [0, 0]
+            composite_day.set_info_var_and_files(info_day)
+            check_files, file_ref, unavailable_files = composite_day.check_input_files()
+            info_dims = cf.get_spatial_dims_arrays(file_ref, None)
+            if check_files==2: ##there is availability
+                array_out, indices_valid = composite_day.compute_composite()
+                indices_valid_by_band = [(np.array([x]).astype(np.int32),) + indices_valid for x in range(6)]
+                cdomModel = CdomModel()
+                nowstr = cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]],
+                                                      array_out[indices_valid_by_band[1]],
+                                                      array_out[indices_valid_by_band[2]],
+                                                      array_out[indices_valid_by_band[3]],
+                                                      array_out[indices_valid_by_band[4]],
+                                                      array_out[indices_valid_by_band[5]],
+                                                      date_here=input_date)
+                cdom_array = cdomModel.run_model(nowstr=nowstr)
+                if cdom_array is None:
+                    retries = 5
+                    index_retry = 1
+                    while index_retry <= retries:
+                        print(f'[INFO] Waiting for 1 minute and retrying to run the CDOM model: {index_retry}....')
+                        time.sleep(60)
+                        cdom_array = cdomModel.run_model(nowstr=nowstr)
+                        if cdom_array is not None:
+                            break
+                        index_retry = index_retry + 1
+                if cdom_array is None:
+                    return None
+
+                cdom_array_2d = np.ma.masked_all(array_out.shape[1:], dtype=cdom_array.dtype)
+                cdom_array_2d[indices_valid] = cdom_array[:]
+
+                acdom = xr.DataArray(
+                    cdom_array_2d,
+                    name=info['var_cdom'],  # Name the variable in the xarray
+                    dims=[info_dims['y_name'], info_dims['x_name']],
+                    # Dimensions are assumed to be latitude and longitude
+                    coords={info_dims['y_name']: info_dims['y_array'], info_dims['x_name']: info_dims['x_array']}
+                    # Use the existing coordinates from the input data
+                )
+                if info_dims['lat_array'] is not None and info_dims['lon_array'] is not None:
+                    acdom['lat'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lat_array'])
+                    acdom['lon'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lon_array'])
+
+                file_out = cf.get_input_file(info['input_path_cdom'], info['file_cdom'], info['file_cdom_format'], input_date_here,
+                                          create_sub_dirs=True, none_if_not_exists=False)
+                acdom.to_netcdf(file_out)
+                print(f'[INFO] CDOM composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
+
+        check_files, file_ref, unavailable_files = composite.check_input_files()
+    if check_files==0:
+        print(f'[ERROR] No daily CDOM files are available and could not be created.')
+        return None
+    if check_files==1:
+        print(f'[WARNING] Some of the daily files are not available for the composite.')
+
+    array_out, indices_valid = composite.compute_composite()
+
+
+
+    acdom = xr.DataArray(
+        np.squeeze(array_out),
+        name="Acdom_sat",  # Name the variable in the xarray
+        dims=[info_dims['y_name'], info_dims['x_name']],  # Dimensions are assumed to be latitude and longitude
+        coords={info_dims['y_name']: info_dims['y_array'], info_dims['x_name']: info_dims['x_array']}
+        # Use the existing coordinates from the input data
+    )
+    if info_dims['lat_array'] is not None and info_dims['lon_array'] is not None:
+        acdom['lat'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lat_array'])
+        acdom['lon'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lon_array'])
+
+    input_date_week = input_date
+    if week == -1:
+        input_date_week = input_date - timedelta(days=8)
+    elif week == -2:
+        input_date_week = input_date - timedelta(days=16)
+    file_out = cf.get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date_week, create_sub_dirs=True,
+                              none_if_not_exists=False)
+    acdom.to_netcdf(file_out)
+    print(f'[INFO] CDOM composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
+
+    return file_out
+
+    return False
+
 
 class CdomModel:
     def __init__(self):
