@@ -197,18 +197,25 @@ class PocAlgorithms:
         ncout.createDimension(info_dims['y_name'],ny)
         ncout.createDimension(info_dims['x_name'],nx)
         ncout.createDimension('time',1)
-        ncout.createDimension('class',17)
+        ncout.createDimension('pclass',17)
 
         print('[INFO] Creating dimension variables...')
         var_y = ncout.createVariable(info_dims['y_name'],'f4',(info_dims['y_name'],),complevel=6,zlib=True)
         var_y[:] = info_dims['y_array']
         if dref is not None and info_dims['y_name'] in dref.variables:
-            var_y.setncatts(dref.variables[info_dims['y_name']].__dict__)
+            attrs_y = dref.variables[info_dims['y_name']].__dict__
+            if '_FillValue' in attrs_y:
+                del attrs_y['_FillValue']
+            var_y.setncatts(attrs_y)
 
         var_x = ncout.createVariable(info_dims['x_name'], 'f4', (info_dims['x_name'],), complevel=6, zlib=True)
         var_x[:] = info_dims['x_array']
         if dref is not None and info_dims['x_name'] in dref.variables:
-            var_x.setncatts(dref.variables[info_dims['x_name']].__dict__)
+            attrs_x = dref.variables[info_dims['x_name']].__dict__
+            if '_FillValue' in attrs_x:
+                del attrs_x['_FillValue']
+            var_y.setncatts(attrs_x)
+
 
         var_time = ncout.createVariable('time', 'i4', ('time',), complevel=6, zlib=True)
         var_time[:] = np.int32((input_date-dt(1981,1,1)).total_seconds())
@@ -232,12 +239,12 @@ class PocAlgorithms:
                 if dref is not None and info_dims['lon_name'] in dref.variables:
                     var_lat.setncatts(dref.variables[info_dims['lon_name']].__dict__)
 
-        var_class = ncout.createVariable('class', 'i4', ('class',), complevel=6, zlib=True)
-        var_class[:] = np.arange(1,18).astype(np.int32)
+        var_class = ncout.createVariable('pclass', 'i4', ('pclass',), complevel=6, zlib=True)
+        var_class[:] = np.arange(17).astype(np.int32)
         print('[INFO] Creating data variables...')
-        data_variables = ['CHL','BBP','POC_Le','POC_Tran','POC_Loisel','POC','OWT']
+        data_variables = ['CHL','BBP','POC_Le','POC_Tran','POC_Loisel','POC','Class']
         for name_var in data_variables:
-            data_type = 'i4' if name_var=='CLASS' else 'f4'
+            data_type = 'i4' if name_var=='Class' else 'f4'
             ncout.createVariable(name_var,data_type,('time',info_dims['y_name'],info_dims['x_name']),complevel=6,zlib=True,fill_value=-999)
 
         array_2d_orig = np.ma.masked_all(shape_orig)
@@ -274,9 +281,9 @@ class PocAlgorithms:
 
         array_2d = array_2d_orig.copy()
         array_2d[indices_valid] = self.Class[:]
-        ncout['OWT'][0,:] = array_2d[:]
+        ncout['Class'][0,:] = array_2d[:]
 
-        var_proba = ncout.createVariable('PROBA', 'f4', ('time','class',info_dims['y_name'], info_dims['x_name']), complevel=6, zlib=True, fill_value=-999)
+        var_proba = ncout.createVariable('Probability', 'f4', ('time','pclass',info_dims['y_name'], info_dims['x_name']), complevel=6, zlib=True, fill_value=-999)
         for idx in range(17):
             array_2d = array_2d_orig.copy()
             array_2d[indices_valid] = self.proba[idx,:]

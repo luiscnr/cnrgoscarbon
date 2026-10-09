@@ -18,6 +18,17 @@ def get_date_arg(argdate):
             print(f'[ERROR] {argdate} is not a valid date in format YYYY-MM-DD or relative integer' )
     return date_out
 
+def get_start_end_date(argstart,argend):
+    start_date = get_date_arg(argstart)
+    end_date = get_date_arg(argend) if argend is not None else start_date
+
+    if start_date is None or end_date is None:
+        return [None]*2
+    if end_date < start_date:
+        print(f'[ERROR] End date {end_date} should be greater or equal than start date {start_date}')
+        return [None]*2
+    return start_date,end_date
+
 def get_files_by_pattern(directory, pattern):
     """
     Finds files in the specified directory that match a given pattern.

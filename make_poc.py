@@ -4,6 +4,7 @@ import numpy as np
 from options.options_manager import OptionsManager
 from bbp import bbp_run
 from poc import PocAlgorithms
+from datetime import timedelta
 import xarray as xr
 
 class OptionsPOC:
@@ -34,18 +35,23 @@ class OptionsPOC:
         return self.get_options_as_dict('CHL_DAILY')
 
 def main(args_d):
-    input_date = cf.get_date_arg(args_d['date'])
-    if input_date is None:
+    # input_date = cf.get_date_arg(args_d['date'])
+    # if input_date is None:
+    #     return
+    start_date, end_date = cf.get_start_end_date(args_d['start_date'],args_d['end_date'])
+    if start_date is None:
         return
-
     options = OptionsPOC(args_d['config_file'])
     if not options.VALID:
         return
 
     poc_options = options.get_poc_options()
     chl_options = options.get_chl_options()
-
-    run_date(poc_options,chl_options,input_date)
+    work_date = start_date
+    while work_date<=end_date:
+        print(f'[INFO] Working POC on date {work_date}')
+        run_date(poc_options,chl_options,work_date)
+        work_date = work_date + timedelta(days=1)
 
 def run_date(poc_options,chl_options,input_date):
 
@@ -133,7 +139,8 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--verbose", help="Verbose mode.", action="store_true")
     parser.add_argument('-c', "--config_file", help="Config File.")
     parser.add_argument('-only_datasets',"--only_get_datasets",help="Mode to retrieve the datasets without launching the DOC",action="store_true")
-    parser.add_argument('-d', "--date",help="Input Date: YYYY-mm-dd")
+    parser.add_argument('-sd', "--start_date",help="Start Date: YYYY-mm-dd")
+    parser.add_argument('-ed', "--end_date", help="End Date: YYYY-mm-dd")
     args = parser.parse_args()
     args_dict = vars(args)
     main(args_dict)

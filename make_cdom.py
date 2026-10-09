@@ -53,8 +53,8 @@ class CDOMRun:
         list_files = self.options_cdom['list_files']
         list_var = self.options_cdom['list_var']
         n_var = len(list_var)
-        array_out, valid_array, lat_base, lon_base = [None] * 4
-
+        array_out, valid_array, y_array, x_array, lat_array, lon_array= [None] * 6
+        info_dims = None
 
         for ivar, var_name in enumerate(list_var):
             input_file_format = list_files_format[ivar] if len(list_files_format) == len(list_var) else list_files_format[0]
@@ -62,11 +62,19 @@ class CDOMRun:
             input_path_date = os.path.join(self.options_cdom['input_path'],date_run.strftime(self.options_cdom['input_path_organization']))
             input_path = os.path.join(input_path_date,input_file.replace('$DATE$',date_run.strftime(input_file_format)))
             if os.path.exists(input_path):
+
                 dset = Dataset(input_path)
+                if info_dims is None:
+                    info_dims = cf.get_spatial_dims_arrays(None,dset)
                 array_here = np.squeeze(dset.variables[var_name][:])
-                if lat_base is None and lon_base is None:
-                    lat_base = dset.variables['lat'][:]
-                    lon_base = dset.variables['lon'][:]
+                if y_array is None and x_array is None and info_dims is not None:
+                    y_array = dset.variables[info_dims['y_name']][:]
+                    x_array = dset.variables[info_dims['x_name']][:]
+                    if info_dims['lat_name'] is not None and info_dims['y_name']!=info_dims['lat_name']:
+                        lat_array = dset.variables[info_dims['lat_name']][:]
+                    if info_dims['lon_name'] is not None and info_dims['x_name']!=info_dims['lon_name']:
+                        lon_array = dset.variables[info_dims['lon_name']][:]
+
                 dset.close()
                 if array_out is None:
                     array_out = np.ma.masked_all((n_var,) + array_here.shape)
@@ -110,11 +118,35 @@ class CDOMRun:
         acdom = xr.DataArray(
             cdom_array_2d,
             name="Acdom_sat",  # Name the variable in the xarray
-            dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
-            coords={"lat": lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
+            dims=[info_dims['y_name'], info_dims['x_name']],  # Dimensions are assumed to be latitude and longitude
+            coords={info_dims['y_name']: y_array, info_dims['x_name']: x_array}  # Use the existing coordinates from the input data
         )
-        acdom.to_netcdf(file_out)
-        print(f'[INFO] CDOM daily product for date {date_run.strftime("%Y-%m-%d")} was saved to {file_out}')
+
+        acdom_dataset = None
+        if lat_array is not None and lon_array is not None:
+            ny = cdom_array_2d.shape[0]
+            nx = cdom_array_2d.shape[1]
+            if len(lat_array.shape)==2 and len(lon_array.shape)==2 and lat_array.shape==lon_array.shape and lat_array.shape==(ny,nx):
+                xr_lat_array = xr.DataArray(lat_array,name='lat',dims=[info_dims['y_name'], info_dims['x_name']],
+                                         coords={info_dims['y_name']: y_array, info_dims['x_name']: x_array})
+                xr_lon_array = xr.DataArray(lon_array, name='lon', dims=[info_dims['y_name'], info_dims['x_name']],
+                                            coords={info_dims['y_name']: y_array, info_dims['x_name']: x_array})
+
+                acdom_dataset =xr.Dataset({
+                    'Acdom-sat': acdom,
+                    'lat': xr_lat_array,
+                    'lon': xr_lon_array,
+                })
+            else:
+                print(f'[ERROR] Dimensions of latitude ({lat_array.shape}) and longitude ({lon_array.shape}) arrays are inconsistent with the expected y,x dimensions {ny,nx}')
+        else:
+            acdom_dataset = xr.Dataset({'Acdom-sat': acdom})
+
+        if acdom_dataset is not None:
+            acdom_dataset.to_netcdf(file_out)
+            print(f'[INFO] CDOM daily product for date {date_run.strftime("%Y-%m-%d")} was saved to {file_out}')
+        else:
+            print(f'[ERROR] CDOM daily product for date {date_run.strftime("%Y-%m-%d")} could not be saved to {file_out}')
 
 
 def main(args_d):
