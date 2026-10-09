@@ -170,7 +170,7 @@ def main(args_d):
     while work_date <= end_date:
         print('[INFO] --------------------------------------------------------')
         cdom_run = CDOMRun(cdom_options)
-        cdom_run.run_date(start_date)
+        cdom_run.run_date(work_date)
         print('[INFO] --------------------------------------------------------')
         work_date = work_date + timedelta(days=1)
 
