@@ -951,8 +951,12 @@ def main(args_d):
     # if test():##uncomment for quick testing
     #     return
 
-    input_date = cf.get_date_arg(args_d['date'])
-    if input_date is None:
+    # input_date = cf.get_date_arg(args_d['date'])
+    # if input_date is None:
+    #     return
+
+    start_date, end_date = cf.get_start_end_date(args_d['start_date'], args_d['end_date'])
+    if start_date is None:
         return
 
     options = OptionsDOC(args_d['config_file'])
@@ -963,73 +967,90 @@ def main(args_d):
 
     general_model_options = options.get_general_model_options()
 
-    ##Getting output file
-    output_file = get_input_file(general_model_options['output_path'], general_model_options['output_file'], '%Y%j', input_date,create_sub_dirs=True,none_if_not_exists=False)
-    output_path_date = os.path.dirname(output_file)
-    try:
-        os.makedirs(output_path_date, exist_ok=True)
-    except OSError as e:
-        print(f'[ERROR] Output path {output_path_date} does not exist and could not be created. Exception: {e}. Please review permissions')
-        return
-    ##Getting file ref
-    file_ref = get_input_file(general_model_options['path_ref'], general_model_options['file_ref'], '%Y%j', input_date,create_sub_dirs=False,none_if_not_exists=True)
-    if file_ref is None or not os.path.isfile(file_ref):
-        print(f'[ERROR] Reference file is not available, choose correct options for path_ref and file_ref in the configuration file, section [DOC_MODEL]. This file is required for writing the final output file')
-        return
+    input_date = start_date
 
-    dataset_dict = get_datasets(general_model_options,options,input_date)
-    for dataset in dataset_dict:
-        print(f'-------------------------------------------------------------------------------------------------------')
-        if dataset_dict[dataset][0] is None:
-            print(f'[INFO] Dataset {dataset} is not available. Launched run...')
-            file_out = run_dataset(dataset,input_date,options)
-            if file_out is None:
-                if not general_model_options['create_empty_if_not_datasets']:
-                    print(f'[ERROR] Dataset {dataset} is not available and could not be created. DOC will not be created.')
-                    return
+    while input_date <= end_date:
+        print(f'[INFO] Working with date {input_date}-----------------------------------------------------------------')
+        ##Getting output file
+        output_file = get_input_file(general_model_options['output_path'], general_model_options['output_file'], '%Y%j', input_date,create_sub_dirs=True,none_if_not_exists=False)
+        output_path_date = os.path.dirname(output_file)
+        try:
+            os.makedirs(output_path_date, exist_ok=True)
+        except OSError as e:
+            print(f'[ERROR] Output path {output_path_date} does not exist and could not be created. Exception: {e}. Please review permissions')
+            input_date = input_date + timedelta(days=1)
+            continue
+        ##Getting file ref
+        file_ref = get_input_file(general_model_options['path_ref'], general_model_options['file_ref'], '%Y%j', input_date,create_sub_dirs=False,none_if_not_exists=True)
+
+        if file_ref is None or not os.path.isfile(file_ref):
+            print(f'[ERROR] Reference file is not available, choose correct options for path_ref and file_ref in the configuration file, section [DOC_MODEL]. This file is required for writing the final output file')
+            input_date = input_date + timedelta(days=1)
+            continue
+
+        dataset_dict = get_datasets(general_model_options,options,input_date)
+        unavailable_datasets = False
+        for dataset in dataset_dict:
+            print(f'-------------------------------------------------------------------------------------------------------')
+            if dataset_dict[dataset][0] is None:
+                print(f'[INFO] Dataset {dataset} is not available. Launched run...')
+                file_out = run_dataset(dataset,input_date,options)
+                if file_out is None:
+                    if not general_model_options['create_empty_if_not_datasets']:
+                        print(f'[ERROR] Dataset {dataset} is not available and could not be created. DOC will not be created.')
+                        unavailable_datasets = True
+                        break
+                    else:
+                        print(f'[WARNING] Dataset {dataset} is not available and could not be created. A file with an empty doc variable will be created.')
+                        create_file_with_empty_doc(input_date,file_ref,output_file,general_model_options['variable_ref'])
+                        unavailable_datasets = True
+                        break
+                elif not os.path.isfile(file_out):
+                    print(f'[ERROR] {file_out} is not a valid file for dataset {dataset}')
+                    unavailable_datasets = True
+                    break
                 else:
-                    print(f'[WARNING] Dataset {dataset} is not available and could not be created. A file with an empty doc variable will be created.')
+                    dataset_dict[dataset] = [file_out]
+                    print(f'[INFO] Dataset {dataset}->{file_out}')
 
-                    create_file_with_empty_doc(input_date,file_ref,output_file,general_model_options['variable_ref'])
-                    return
-            elif not os.path.isfile(file_out):
-                print(f'[ERROR] {file_out} is not a valid file for dataset {dataset}')
             else:
-                dataset_dict[dataset] = [file_out]
-                print(f'[INFO] Dataset {dataset}->{file_out}')
+                print(f'[INFO] Dataset {dataset}->{dataset_dict[dataset][0]}')
 
-        else:
-            print(f'[INFO] Dataset {dataset}->{dataset_dict[dataset][0]}')
+        if unavailable_datasets:
+            input_date = input_date + timedelta(days=1)
+            continue
+        print(f'-------------------------------------------------------------------------------------------------------')
+        print(f'[INFO] All the required datasets are available for date: {input_date.strftime("%Y-%m-%d")}')
 
-    print(f'-------------------------------------------------------------------------------------------------------')
-    print(f'[INFO] All the required datasets are available for date: {input_date.strftime("%Y-%m-%d")}')
+        if args_d['only_get_datasets']:
+            input_date = input_date + timedelta(days=1)
+            continue
 
-    if args_d['only_get_datasets']:
-        return
-
-    ##Prepare the mask
-    print(f'[INFO] Getting the mask...')
-    mask = get_mask_from_input_datasets(dataset_dict)
-    if mask is None:
-        print(f'[ERROR] Mask for the input datasets could not be retrieved.')
-        return
+        ##Prepare the mask
+        print(f'[INFO] Getting the mask...')
+        mask = get_mask_from_input_datasets(dataset_dict)
+        if mask is None:
+            print(f'[ERROR] Mask for the input datasets could not be retrieved.')
+            input_date = input_date + timedelta(days=1)
+            continue
 
 
-    ## Call the Run_DOC_model function, passing the datasets and the current date as arguments to compute the DOC values
-    print(f'[INFO] Running the DOC model...')
-    DOC = Run_DOC_model(dataset_dict, input_date)
+        ## Call the Run_DOC_model function, passing the datasets and the current date as arguments to compute the DOC values
+        print(f'[INFO] Running the DOC model...')
+        DOC = Run_DOC_model(dataset_dict, input_date)
 
-    print(f'[INFO] Applying the mask...')
-    doc_array = np.ma.array(DOC['doc'].data)
-    print('prima',np.ma.count_masked(doc_array))
-    doc_array[0,mask] = np.ma.masked
-    print('dop', np.ma.count_masked(doc_array))
+        print(f'[INFO] Applying the mask...')
+        doc_array = np.ma.array(DOC['doc'].data)
+        doc_array[0,mask] = np.ma.masked
 
-    dref = Dataset(file_ref)
-    lat_array = dref.variables['lat'][:]
-    lon_array = dref.variables['lon'][:]
-    dref.close()
-    create_doc_file_impl(input_date,output_file,file_ref,doc_array,None,lat_array,lon_array)
+
+        dref = Dataset(file_ref)
+        lat_array = dref.variables['lat'][:]
+        lon_array = dref.variables['lon'][:]
+        dref.close()
+        create_doc_file_impl(input_date,output_file,file_ref,doc_array,None,lat_array,lon_array)
+        print(f'[INFO] Output file has been generated.')
+        input_date = input_date + timedelta(days=1)
 
     # # Save the DOC and DOC_abc datasets as netCDF files in the folder path.
     # DOC.to_netcdf(output_file)  # Save the DOC dataset to a netCDF file
@@ -1052,7 +1073,8 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--verbose", help="Verbose mode.", action="store_true")
     parser.add_argument('-c', "--config_file", help="Config File.")
     parser.add_argument('-only_datasets',"--only_get_datasets",help="Mode to retrieve the datasets without launching the DOC",action="store_true")
-    parser.add_argument('-d', "--date",help="Input Date: YYYY-mm-dd")
+    parser.add_argument('-sd', "--start_date", help="Start Date: YYYY-mm-dd")
+    parser.add_argument('-ed', "--end_date", help="End Date: YYYY-mm-dd")
     args = parser.parse_args()
     args_dict = vars(args)
     main(args_dict)
