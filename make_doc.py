@@ -969,6 +969,8 @@ def main(args_d):
 
     input_date = start_date
 
+    print(general_model_options)
+
     while input_date <= end_date:
         print(f'[INFO] Working with date {input_date}-----------------------------------------------------------------')
         ##Getting output file
