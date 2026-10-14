@@ -963,9 +963,9 @@ def main(args_d):
     if not options.VALID:
         return
 
-
-
     general_model_options = options.get_general_model_options()
+    if general_model_options is None:
+        return
 
     input_date = start_date
 
