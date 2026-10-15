@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import glob, os
 from netCDF4 import Dataset
+from geoinfo import  GeoInfo
+from resampler import Resampler
 
 def get_date_arg(argdate):
     if argdate is None:
@@ -28,6 +30,127 @@ def get_start_end_date(argstart,argend):
         print(f'[ERROR] End date {end_date} should be greater or equal than start date {start_date}')
         return [None]*2
     return start_date,end_date
+
+def get_start_end_dates_composite(input_date,info,week):
+    dates_key = f'dates_{int(week * (-1))}w'
+    info_dates = info[dates_key]
+    start_date, end_date = [None]*2
+    #print(info_dates)
+    if len(info_dates)==1:
+        end_date = input_date + timedelta(info_dates[0])
+        start_date = end_date - timedelta(days=info['n_days']-1)
+    elif len(info_dates)==2:
+        start_date = input_date + timedelta(days=info_dates[0])
+        end_date = input_date + timdelta(days=info_dates[1])
+    return start_date,end_date
+
+def get_input_file_composite(input_date,start_date,end_date,path_composite,path_composite_org,file_composite,file_composite_format):
+    path_composite = path_composite.replace('$INPUT_DATE$',input_date.strftime(path_composite_org))
+    path_composite = path_composite.replace('$START_DATE$', start_date.strftime(path_composite_org))
+    path_composite = path_composite.replace('$END_DATE$', end_date.strftime(path_composite_org))
+
+    file_composite = file_composite.replace('$INPUT_DATE$', input_date.strftime(file_composite_format))
+    file_composite = file_composite.replace('$START_DATE$', start_date.strftime(file_composite_format))
+    file_composite = file_composite.replace('$END_DATE$', end_date.strftime(file_composite_format))
+
+    output_file = os.path.join(path_composite,file_composite)
+    if os.path.isfile(output_file):
+        return output_file
+    else:
+        print(f'[WARNING] File composite {output_file} is not available. Please review: path_composite,path_composite_org, file_composite, file_composite_format')
+        return None
+
+def get_resampler_from_info(input_date,info,file_ref,key=''):
+
+    resampler, info_dims = None, None
+
+    if info['resampler_reference_file'] is not None:
+        file_ref = info['resampler_reference_file']
+
+    if info['resampler'] is not None:
+        type_resampler = info['type_resampler']
+        if type_resampler == 'file_ref':
+            info_dims, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
+        if type_resampler == 'projections':
+            info_dims, resampler = get_resampler_from_area_defs(info, input_date)
+
+    if resampler is None:
+        print(f'[ERROR] Resampler for {key} dataset could not be initialized.')
+        info_dims = get_spatial_dims_arrays(file_ref, None)
+
+    return info_dims,resampler
+
+def get_resampler_from_area_defs(info,input_date):
+    resampler_l = info['resampler']
+    if len(resampler_l) <2 or len(resampler_l)>5:
+        print(f'Option resampler with resampler_type = projections should be a list of 3, 4 or 5 elements indicating: 0: area id for base, 1: area id for data, 2: file_base or 2: path_base, 3: name_base:, 4: date format(optional) ')
+        return [None]*2
+    geo_info = GeoInfo()
+    area_base = geo_info.get_area_definition(resampler_l[0])
+    if area_base is None:
+        print(f'[ERROR] Area definition for base file {resampler_l[0]} is not valid')
+        return [None]*2
+    area_data = geo_info.get_area_definition(resampler_l[1])
+    if area_data is None:
+        print(f'[ERROR] Area definition for base file {resampler_l[0]} is not valid')
+        return [None]*2
+    file_base = None
+    if len(resampler_l)==3:
+        file_base = resampler_l[2]
+    elif 4 <= len(resampler_l) <= 5:
+        date_format = resampler_l[4] if len(resampler_l) == 5 else '%Y%j'
+        file_base = get_input_file(resampler_l[2], resampler_l[3], date_format, input_date)
+    if file_base is None:
+        print(f'[ERROR] File base for resampler could not be retrieved.')
+        return [None] * 2
+    if not os.path.isfile(file_base):
+        print(f'[ERROR] Resampler file base {file_base} is not available.')
+        return [None]*2
+    #lat_base,lon_base = get_lat_long_arrays(file_base)
+    info_dims = get_spatial_dims_arrays(file_base,None)
+    resampler = Resampler()
+
+    resampler.set_area_definitions(area_base,area_data)
+
+    return info_dims, resampler
+
+def get_resampler_from_info_and_file_ref(info,file_ref,input_date):
+    resampler = info['resampler']
+    if len(resampler)==1:
+        file_base = resampler[0]
+    else:
+        date_format = resampler[2] if len(resampler) == 3 else '%Y%j'
+        file_base = get_input_file(resampler[0], resampler[1], date_format, input_date)
+    if file_base is None:
+        print(f'[ERROR] File base for resampler could not be retrieved.')
+        return [None] * 2
+    if not os.path.isfile(file_base):
+        print(f'[ERROR] Resampler file base {file_base} is not available.')
+        return [None] * 2
+    lat_base,lon_base = get_lat_long_arrays(file_base)
+    lat_data,lon_data = get_lat_long_arrays(file_ref)
+    resampler = Resampler()
+    resampler.set_area_definitions_from_lat_lon_arrays(lat_base, lon_base, lat_data, lon_data)
+    info_dims = {
+        'y_name': 'lat',
+        'x_name': 'lon',
+        'y_array': lat_base,
+        'x_array': lon_base,
+        'lat_name': 'lat',
+        'lon_name': 'lon',
+        'lat_array': None,
+        'lon_array': None
+    }
+    return info_dims,resampler
+
+def get_lat_long_arrays(file_nc):
+    dset = Dataset(file_nc)
+    lat_array = dset.variables['lat'][:]
+    lon_array = dset.variables['lon'][:]
+    dset.close()
+    return lat_array,lon_array
+
+
 
 def get_files_by_pattern(directory, pattern):
     """
@@ -144,6 +267,8 @@ def get_spatial_dims_arrays(file_nc,dset):
     if file_nc is not None and dset is None:
         dset = Dataset(file_nc)
     for name in dset.variables:
+        if name.lower().endswith('_bnds'):
+            continue
         if name.lower().startswith('lat'):
             lat_name = name
         if name.lower().startswith('lon'):

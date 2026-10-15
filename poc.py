@@ -181,7 +181,7 @@ class PocAlgorithms:
             self.brefs = {refs[iref]:int(min_indices[iref]) for iref in range(len(refs))}
             return True
 
-    def create_ncout(self,file_out,input_date,shape_orig,indices_valid,info_dims,file_reference=None,name_sources = None):
+    def create_ncout(self,file_out,input_date,shape_orig,indices_valid,info_dims,file_reference=None,name_sources = None,add_poc_l3=False):
         print(f'[INFO] Creating output file {file_out}')
         ncout = Dataset(file_out,'w',format='NETCDF4')
         dref  = None
@@ -199,6 +199,9 @@ class PocAlgorithms:
         ncout.createDimension('time',1)
         ncout.createDimension('pclass',17)
 
+
+        print(info_dims['y_name'],'....',info_dims['x_name'],'....')
+
         print('[INFO] Creating dimension variables...')
         var_y = ncout.createVariable(info_dims['y_name'],'f4',(info_dims['y_name'],),complevel=6,zlib=True)
         var_y[:] = info_dims['y_array']
@@ -206,6 +209,7 @@ class PocAlgorithms:
             attrs_y = dref.variables[info_dims['y_name']].__dict__
             if '_FillValue' in attrs_y:
                 del attrs_y['_FillValue']
+
             var_y.setncatts(attrs_y)
 
         var_x = ncout.createVariable(info_dims['x_name'], 'f4', (info_dims['x_name'],), complevel=6, zlib=True)
@@ -214,7 +218,8 @@ class PocAlgorithms:
             attrs_x = dref.variables[info_dims['x_name']].__dict__
             if '_FillValue' in attrs_x:
                 del attrs_x['_FillValue']
-            var_y.setncatts(attrs_x)
+
+            var_x.setncatts(attrs_x)
 
 
         var_time = ncout.createVariable('time', 'i4', ('time',), complevel=6, zlib=True)
@@ -278,6 +283,24 @@ class PocAlgorithms:
         ncout['POC'].long_name = 'Particulate Organic Carbon concentration'
         ncout['POC'].units = 'milligram m^-3'
         ncout['POC'].type = 'surface'
+
+        ##POC_L3
+        if add_poc_l3 and dref is not None and 'L3L4MASK' in dref.variables:
+            mask_l3_l4 = np.squeeze(dref.variables['L3L4MASK'][:])
+            poc_array_l3 = array_2d.copy()
+            n_masked_before = np.ma.count_masked(poc_array_l3)
+            poc_array_l3[mask_l3_l4 == 4] = np.ma.masked
+            n_masked_after = np.ma.count_masked(poc_array_l3)
+            nl4 = n_masked_after - n_masked_before
+            print(f'[INFO] Number of L4 pixels masked in the L3 products {nl4}')
+            ncout.createVariable('POC_L3', 'f4', ('time', info_dims['y_name'], info_dims['x_name']), complevel=6,
+                                 zlib=True, fill_value=-999)
+            ncout['POC_L3'][0, :] = poc_array_l3[:]
+            ncout['POC_L3'].standard_name = 'mass_concentration_of_particulate_organic_matter_expressed_as_carbon_in_sea_water'
+            ncout['POC_L3'].missing_value = -999.0
+            ncout['POC_L3'].long_name = 'Particulate Organic Carbon concentration'
+            ncout['POC_L3'].units = 'milligram m^-3'
+            ncout['POC_L3'].type = 'surface'
 
         array_2d = array_2d_orig.copy()
         array_2d[indices_valid] = self.Class[:]

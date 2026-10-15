@@ -76,14 +76,16 @@ class DOCWritter:
                 dset = Dataset(file_ref)
                 self.global_attrs = dset.__dict__
                 self.time_attrs = dset.variables['time'].__dict__
-                self.lat_attrs = dset.variables['lat'].__dict__
-                self.lon_attrs = dset.variables['lon'].__dict__
+                # self.lat_attrs = dset.variables['lat'].__dict__
+                # self.lon_attrs = dset.variables['lon'].__dict__
                 dset.close()
             except Exception as ex:
                 print(f'[ERROR][DOCWritter] Exception checking the reference file: {file_ref}. Exception: {ex}')
                 self.ncout = None
 
         self.ny, self.nx, self.ntimes = -1,-1,1
+        self.y_attrs, self.x_attrs = None,None
+        self.lat_attrs, self.lon_attrs = None,None
         self.date_product = date_product
 
     def set_dimensions(self,doc_array):
@@ -94,15 +96,25 @@ class DOCWritter:
             self.ny = doc_array.shape[0]
             self.nx = doc_array.shape[1]
 
-    def create_dimensions(self):
+    def set_dimensions_and_dims_attrs(self,info_dims):
+        dset = Dataset(self.file_ref,'r')
+        self.lat_attrs = dset.variables[info_dims['lat_name']].__dict__
+        self.lon_attrs = dset.variables[info_dims['lon_name']].__dict__
+        self.y_attrs = dset.variables[info_dims['y_name']].__dict__
+        self.x_attrs = dset.variables[info_dims['x_name']].__dict__
+        self.ny = len(info_dims['y_array'])
+        self.nx = len(info_dims['x_array'])
+        dset.close()
+
+    def create_dimensions(self,info_dims):
         if self.ncout is None:
             return False
         if self.ny==-1 or self.nx==-1:
-            print(f'[ERROR][DOCWritter] Dimensions ny (for latitude) and nx (for longitude) are not valid. Please use first set_dimensions(doc_array) in your code')
+            print(f'[ERROR][DOCWritter] Dimensions ny (for latitude o y dimensioin) and nx (for longitude or x dimension) are not valid. Please use first set_dimensions(doc_array) in your code')
             return False
         self.ncout.createDimension('time',self.ntimes)
-        self.ncout.createDimension('lat', self.ny)
-        self.ncout.createDimension('lon', self.nx)
+        self.ncout.createDimension(info_dims['y_name'], self.ny)
+        self.ncout.createDimension(info_dims['x_name'], self.nx)
 
         return True
     def create_time_variable(self):
@@ -113,18 +125,84 @@ class DOCWritter:
         time_var[0] = int((self.date_product.replace(hour=0,minute=0,second=0,microsecond=0)-dt(1981,1,1,0,0,0,0)).total_seconds())
         return True
 
-    def create_lat_variable(self,lat_array):
+    def create_y_variable(self,info_dims):
         if self.ncout is None:
             return False
-        if lat_array.shape[0]!=self.ny:
-            print(f'[ERROR][DOCWriter] Inconsistency between the size of the latitude array {lat_array.shape[0]} and the expected lat dimension {self.ny}')
+        y_array = info_dims['y_array']
+        if y_array.shape[0] != self.ny:
+            print(f'[ERROR][DOCWriter] Inconsistency between the size of the y array {y_array.shape[0]} and the expected y dimension {self.ny}')
             return False
-        lat_var = self.ncout.createVariable('lat', 'f4', ('lat',), zlib=True, complevel=6)
+        y_var = self.ncout.createVariable(info_dims['y_name'], 'f4', (info_dims['y_name'],), zlib=True, complevel=6)
+        y_var.setncatts(self.y_attrs)
+        y_var[:] = y_array[:]
+        return True
+
+    def create_x_variable(self,info_dims):
+        if self.ncout is None:
+            return False
+        x_array = info_dims['x_array']
+        if x_array.shape[0] != self.nx:
+            print(f'[ERROR][DOCWriter] Inconsistency between the size of the x array {x_array.shape[0]} and the expected x dimension {self.nx}')
+            return False
+        x_var = self.ncout.createVariable(info_dims['x_name'], 'f4', (info_dims['x_name'],), zlib=True, complevel=6)
+        x_var.setncatts(self.x_attrs)
+        x_var[:] = x_array[:]
+        return True
+
+    def create_lat_variable(self,info_dims):
+        if self.ncout is None:
+            return False
+        if info_dims['y_name']==info_dims['lat_name']:
+            lat_array = info_dims['y_array']
+        else:
+            lat_array = info_dims['lat_array']
+        if lat_array is None:
+            return False
+        if len(lat_array.shape)==1:
+            if lat_array.shape[0]!=self.ny:
+                print(f'[ERROR][DOCWriter] Inconsistency between the size of the latitude array {lat_array.shape[0]} and the expected lat dimension {self.ny}')
+                return False
+            lat_var = self.ncout.createVariable(info_dims['lat_name'], 'f4', (info_dims['lat_name'],), zlib=True, complevel=6)
+        elif len(lat_array.shape)==2:
+            if lat_array.shape[0]!=self.ny or lat_array.shape[1]!=self.nx:
+                print(f'[ERROR][DOCWriter] Inconsistency between the shape of the latitude array {lat_array.shape} and the expected dimensions ({self.ny},{self.nx})')
+                return False
+            lat_var = self.ncout.createVariable(info_dims['lat_name'], 'f4', (info_dims['y_name'],info_dims['x_name']), zlib=True, complevel=6)
+        else:
+            print(f'[ERROR][DOCWriter] lat_array shape {lat_array.shape} is inconsistent with the expected validation')
+            return False
         lat_var.setncatts(self.lat_attrs)
         lat_var[:] = lat_array[:]
         return True
 
-    def create_lon_variable(self,lon_array):
+    def create_lon_variable(self,info_dims):
+        if self.ncout is None:
+            return False
+        if info_dims['x_name'] == info_dims['lon_name']:
+            lon_array = info_dims['x_array']
+        else:
+            lon_array = info_dims['lat_array']
+        if lon_array is None:
+            return False
+        if len(lon_array.shape)==1:
+            if lon_array.shape[0]!=self.nx:
+                print(f'[ERROR][DOCWriter] Inconsistency between the size of the longitude array {lon_array.shape[0]} and the expected lon dimension {self.nx}')
+                return False
+            lon_var = self.ncout.createVariable(info_dims['lon_name'], 'f4', (info_dims['lon_name'],), zlib=True, complevel=6)
+        elif len(lon_array.shape)==2:
+            if lon_array.shape[0]!=self.ny or lon_array.shape[1]!=self.nx:
+                print(f'[ERROR][DOCWriter] Inconsistency between the shape of the longitude array {lon_array.shape} and the expected dimensions ({self.ny},{self.nx})')
+                return False
+            lon_var = self.ncout.createVariable(info_dims['lon_name'], 'f4', (info_dims['y_name'],info_dims['x_name']), zlib=True, complevel=6)
+        else:
+            print(f'[ERROR][DOCWriter] lon_array shape {lon_array.shape} is inconsistent with the expected validation')
+            return False
+        lon_var.setncatts(self.lon_attrs)
+        lon_var[:] = lon_array[:]
+        return True
+
+
+    def create_lon_variable_old(self,lon_array):
         if self.ncout is None:
             return False
         if lon_array.shape[0]!=self.nx:
@@ -135,8 +213,8 @@ class DOCWritter:
         lon_var[:] = lon_array[:]
         return True
 
-    def create_doc_variable(self,doc_array):
-        doc_var = self.ncout.createVariable('DOC','f4',('time','lat','lon'),complevel=6,zlib=True,fill_value=-999.0)
+    def create_doc_variable(self,doc_array,y_dim_name,x_dim_name,name_var='DOC'):
+        doc_var = self.ncout.createVariable(name_var,'f4',('time',y_dim_name,x_dim_name),complevel=6,zlib=True,fill_value=-999.0)
         doc_var.standard_name = 'mole_concentration_of_dissolved_organic_carbon_in_sea_water'
         doc_var.long_name = 'Dissolved Organic Carbon concentration'
         doc_var.type = 'surface'
@@ -598,50 +676,79 @@ def run_mld(options,input_date,week = 0):
     return file_out
 
 
-def run_sst(options,input_date,week=0):
-    info = options.get_options_as_dict('SST_COMPOSITE')
-    info['week'] = week
-    composite = Composite(input_date)
-    composite.set_info_var_and_files(info)
-
-    check_files, file_ref, unavailable_dates = composite.check_input_files()
-    if check_files == 0 and info['download'] is None:
-        print(f'[ERROR] Files to compute the chl-a composite are not available.')
+def get_sst_composite(input_date,info,week):
+    start_date, end_date = cf.get_start_end_dates_composite(input_date, info, week)
+    file_composite = cf.get_input_file_composite(input_date, start_date, end_date, info['path_composite'],
+                                                 info['path_composite_org'], info['file_composite'],
+                                                 info['file_composite_format'])
+    if file_composite is None:
         return None
 
-    if info['download'] is not None and check_files <= 1:
-        if len(composite.list_files)>1:
-            print(f'[ERROR] Download is not available for multiple list_files')
+    dcomp = Dataset(file_composite)
+    array_out = np.squeeze(dcomp.variables[info['variable_composite']][:])
+    dcomp.close()
+
+    info_dims, resampler = cf.get_resampler_from_info(input_date,info,file_composite,key='SST COMPOSITE')
+    if resampler is not None:
+        array_out = resampler.compute_nn_resampled_array(array_out)
+
+    return array_out,info_dims
+
+def run_sst(options,input_date,week=0):
+    #print('--------------------------------------------------------------------------------------------->',input_date,week)
+    info = options.get_options_as_dict('SST_COMPOSITE')
+    #print(info)
+
+    array_out,  info_dims = [None]*2
+    if info['path_composite'] is not None and info['file_composite'] is not None and info['variable_composite'] is not None:
+        array_out,info_dims = get_sst_composite(input_date,info,week)
+
+
+    if array_out is None:
+        info['week'] = week
+        composite = Composite(input_date)
+        composite.set_info_var_and_files(info)
+        check_files, file_ref, unavailable_dates = composite.check_input_files()
+
+
+        if check_files == 0 and info['download'] is None:
+            print(f'[ERROR] Files to compute the chl-a composite are not available.')
             return None
-        print(f'[WARNING] SST daily files are not available for {len(unavailable_dates)}/{composite.n_days} dates. Trying download....')
-        options_download = options.get_download_options(info['download'])
-        launcher = LaunchDownload(options_download, unavailable_dates)
-        if launcher.launch_download():
-            check_files, file_ref, unavailable_files = composite.check_input_files()
-            if check_files == 0:
-                print(f'[ERROR] Files to compute the SST composite are not available.')
+
+        if info['download'] is not None and check_files <= 1:
+            if len(composite.list_files)>1:
+                print(f'[ERROR] Download is not available for multiple list_files')
                 return None
+            print(f'[WARNING] SST daily files are not available for {len(unavailable_dates)}/{composite.n_days} dates. Trying download....')
+            options_download = options.get_download_options(info['download'])
+            launcher = LaunchDownload(options_download, unavailable_dates)
+            if launcher.launch_download():
+                check_files, file_ref, unavailable_files = composite.check_input_files()
+                if check_files == 0:
+                    print(f'[ERROR] Files to compute the SST composite are not available.')
+                    return None
+            else:
+                print(f'[ERROR] Download of files to compute the SST composite was not successful.')
+                return None
+
+
+        if info['resampler'] is not None:
+            type_resampler = info['type_resampler']
+
+            if type_resampler=='file_ref':
+                info_dims, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
+            if type_resampler=='projections':
+                info_dims, resampler = get_resampler_from_area_defs(info,input_date)
+            if resampler is None:
+                print(f'[ERROR] Resampler for SST dataset could not be initialized.')
+                return None
+            composite.resampler = resampler
         else:
-            print(f'[ERROR] Download of files to compute the SST composite was not successful.')
-            return None
+            #lat_base, lon_base = get_lat_long_arrays(file_ref)
+            info_dims = get_spatial_dims_arrays(file_ref)
 
+        array_out, indices_valid = composite.compute_composite()
 
-    if info['resampler'] is not None:
-        type_resampler = info['type_resampler']
-
-        if type_resampler=='file_ref':
-            info_dims, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
-        if type_resampler=='projections':
-            info_dims, resampler = get_resampler_from_area_defs(info,input_date)
-        if resampler is None:
-            print(f'[ERROR] Resampler for SST dataset could not be initialized.')
-            return None
-        composite.resampler = resampler
-    else:
-        #lat_base, lon_base = get_lat_long_arrays(file_ref)
-        info_dims = get_spatial_dims_arrays(file_ref)
-
-    array_out, indices_valid = composite.compute_composite()
     sst = xr.DataArray(
         np.squeeze(array_out),
         name="SST",  # Name the variable in the xarray
@@ -651,12 +758,6 @@ def run_sst(options,input_date,week=0):
     if info_dims['lat_array'] is not None and info_dims['lon_array'] is not None:
         sst['lat'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lat_array'])
         sst['lon'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lon_array'])
-    # sst = xr.DataArray(
-    #     np.squeeze(array_out),
-    #     name="SST",  # Name the variable in the xarray
-    #     dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
-    #     coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
-    # )
 
     file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j',get_date_week(input_date,week),create_sub_dirs=True, none_if_not_exists=False)
     sst.to_netcdf(file_out)
@@ -897,22 +998,60 @@ def run_classification_impl(array_out,valid_array,valid_array_prob,shape_out,sha
 
     return class_array, prob_array, flag1_array, flag2_array, flag3_array, flag4_array, pclass
 
-def create_file_with_empty_doc(input_date,file_ref,file_out,variable_ref):
+def create_file_with_empty_doc(input_date,file_ref,file_out,add_l3=False):
 
     print(f'[INFO][DOCWritter] Creating file with empty DOC variable: {file_out}')
-    print(f'[INFO][DOCWritter] - Reading reference file: {file_ref}')
-    dset = Dataset(file_ref)
-    if variable_ref is None:
-        for var in dset.variables:
-            if len(dset.variables[var].shape)==3 and dset.variables[var].shape[0]==1:
-                variable_ref = var
-    array_ref = dset.variables[variable_ref][:]
-    lat_array = dset.variables['lat'][:]
-    lon_array = dset.variables['lon'][:]
-    dset.close()
-    create_doc_file_impl(input_date,file_out,file_ref,None,array_ref,lat_array,lon_array)
 
-def create_doc_file_impl(input_date,file_out,file_ref,array_doc,array_ref,lat_array,lon_array):
+    create_doc_file_impl(input_date,file_out,file_ref,None,add_l3=add_l3)
+
+def create_doc_file_impl(input_date,file_out,file_ref,array_doc,add_l3=False,array_l3=None):
+    info_dims = cf.get_spatial_dims_arrays(file_ref, None)
+    docw = DOCWritter(file_out, file_ref, input_date)
+    docw.set_dimensions_and_dims_attrs(info_dims)
+    if not docw.create_dimensions(info_dims):
+        docw.close_and_remove()
+        return
+    print(f'[INFO][DOCWritter] - Adding variables...')
+    if not docw.create_time_variable():
+        docw.close_and_remove()
+        return
+    if info_dims['lat_name']!=info_dims['y_name'] and  info_dims['lon_name']!=info_dims['x_name']:
+        if not docw.create_y_variable(info_dims):
+            docw.close_and_remove()
+            return
+        if not docw.create_x_variable(info_dims):
+            docw.close_and_remove()
+            return
+    if not docw.create_lat_variable(info_dims):
+        docw.close_and_remove()
+        return
+    if not docw.create_lon_variable(info_dims):
+        docw.close_and_remove()
+        return
+    if not docw.create_doc_variable(array_doc,info_dims['y_name'],info_dims['x_name']):
+        docw.close_and_remove()
+        return
+    if add_l3:
+        array_doc_l3 = array_l3 if array_l3 is not None else array_doc
+        if not docw.create_doc_variable(array_doc_l3,info_dims['y_name'],info_dims['x_name'],name_var='DOC_L3'):
+            docw.close_and_remove()
+            return
+
+    print(f'[INFO][DOCWritter] - Adding attributes...')
+    docw.add_global_variables()
+    docw.close_file()
+    print(f'[INFO][DOCWritter] Completed')
+
+    # if info_dims['lat_array'] is not None and info_dims['lon_array'] is not None:
+    #     if not docw.create_lat_variable(info_dims['lat_array']):
+    #         docw.close_and_remove()
+    #         return
+    #     if not docw.create_lon_variable(info_dims['lon_array):
+    #         docw.close_and_remove()
+    #         return
+
+
+def create_doc_file_impl_prev(input_date,file_out,file_ref,array_doc,array_ref,lat_array,lon_array):
     docw = DOCWritter(file_out, file_ref, input_date)
     print(f'[INFO][DOCWritter] - Setting and adding dimensions...')
     if array_doc is not None:
@@ -920,7 +1059,7 @@ def create_doc_file_impl(input_date,file_out,file_ref,array_doc,array_ref,lat_ar
     elif array_ref is not None:
         docw.set_dimensions(array_ref)
 
-    if not docw.create_dimensions():
+    if not docw.create_dimensions(None):
         docw.close_and_remove()
         return
     print(f'[INFO][DOCWritter] - Adding variables...')
@@ -969,7 +1108,7 @@ def main(args_d):
 
     input_date = start_date
 
-    print(general_model_options)
+    #print(general_model_options)
 
     while input_date <= end_date:
         print(f'[INFO] Working with date {input_date}-----------------------------------------------------------------')
@@ -1004,7 +1143,7 @@ def main(args_d):
                         break
                     else:
                         print(f'[WARNING] Dataset {dataset} is not available and could not be created. A file with an empty doc variable will be created.')
-                        create_file_with_empty_doc(input_date,file_ref,output_file,general_model_options['variable_ref'])
+                        create_file_with_empty_doc(input_date,file_ref,output_file,add_l3= general_model_options['add_doc_l3_to_empty'])
                         unavailable_datasets = True
                         break
                 elif not os.path.isfile(file_out):
@@ -1045,13 +1184,21 @@ def main(args_d):
         doc_array = np.ma.array(DOC['doc'].data)
         doc_array[0,mask] = np.ma.masked
 
-
-        dref = Dataset(file_ref)
-        lat_array = dref.variables['lat'][:]
-        lon_array = dref.variables['lon'][:]
-        dref.close()
-        create_doc_file_impl(input_date,output_file,file_ref,doc_array,None,lat_array,lon_array)
-        print(f'[INFO] Output file has been generated.')
+        doc_array_l3 = None
+        if general_model_options['add_doc_l3_with_mask']:
+            dref = Dataset(file_ref)
+            if 'L3L4MASK' in dref.variables:
+                mask_l3_l4 = dref.variables['L3L4MASK'][:]
+                doc_array_l3 = doc_array.copy()
+                n_masked_before = np.ma.count_masked(doc_array_l3)
+                doc_array_l3[mask_l3_l4==4] = np.ma.masked
+                n_masked_after = np.ma.count_masked(doc_array_l3)
+                nl4 = n_masked_after-n_masked_before
+                nl4bis = np.ma.sum(mask_l3_l4==4)
+                print(f'[INFO] Number of L4 pixels masked in the L3 products {nl4} {nl4bis}')
+            dref.close()
+        create_doc_file_impl(input_date,output_file,file_ref,doc_array,add_l3=general_model_options['add_doc_l3_with_mask'],array_l3=doc_array_l3)
+        print(f'[INFO] Output file {output_file} has been generated.')
         input_date = input_date + timedelta(days=1)
 
     # # Save the DOC and DOC_abc datasets as netCDF files in the folder path.

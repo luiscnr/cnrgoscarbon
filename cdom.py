@@ -89,19 +89,24 @@ def launch_multiple_cdom_files(input_date,info):
             info_day['dates_0w'] = [0, 0]
             composite_day.set_info_var_and_files(info_day)
             check_files, file_ref, unavailable_files = composite_day.check_input_files()
-            info_dims = cf.get_spatial_dims_arrays(file_ref, None)
+
+
             if check_files==2: ##there is availability
+                info_dims = cf.get_spatial_dims_arrays(file_ref, None)
                 array_out, indices_valid = composite_day.compute_composite()
-                indices_valid_by_band = [(np.array([x]).astype(np.int32),) + indices_valid for x in range(6)]
-                cdomModel = CdomModel()
-                nowstr = cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]],
-                                                      array_out[indices_valid_by_band[1]],
-                                                      array_out[indices_valid_by_band[2]],
-                                                      array_out[indices_valid_by_band[3]],
-                                                      array_out[indices_valid_by_band[4]],
-                                                      array_out[indices_valid_by_band[5]],
-                                                      date_here=input_date)
-                cdom_array = cdomModel.run_model(nowstr=nowstr)
+                if len(indices_valid[0])>0:
+                    indices_valid_by_band = [(np.array([x]).astype(np.int32),) + indices_valid for x in range(6)]
+                    cdomModel = CdomModel()
+                    nowstr = cdomModel.set_df_from_arrays(array_out[indices_valid_by_band[0]],
+                                                        array_out[indices_valid_by_band[1]],
+                                                        array_out[indices_valid_by_band[2]],
+                                                        array_out[indices_valid_by_band[3]],
+                                                        array_out[indices_valid_by_band[4]],
+                                                        array_out[indices_valid_by_band[5]],
+                                                        date_here=input_date)
+                    cdom_array = cdomModel.run_model(nowstr=nowstr)
+                else:
+                    cdom_array = np.array([]).astype(array_out.dtype)
                 if cdom_array is None:
                     retries = 5
                     index_retry = 1
@@ -116,7 +121,8 @@ def launch_multiple_cdom_files(input_date,info):
                     return None
 
                 cdom_array_2d = np.ma.masked_all(array_out.shape[1:], dtype=cdom_array.dtype)
-                cdom_array_2d[indices_valid] = cdom_array[:]
+                if len(indices_valid[0])>0:
+                    cdom_array_2d[indices_valid] = cdom_array[:]
 
                 acdom = xr.DataArray(
                     cdom_array_2d,
