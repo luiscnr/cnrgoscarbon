@@ -149,7 +149,7 @@ def launch_multiple_cdom_files(input_date,info):
         print(f'[WARNING] Some of the daily files are not available for the composite.')
 
     array_out, indices_valid = composite.compute_composite()
-    
+    ##file_ref is only None for check_files==0
     info_dims = cf.get_spatial_dims_arrays(file_ref, None)
 
 

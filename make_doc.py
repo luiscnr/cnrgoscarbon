@@ -785,8 +785,7 @@ def run_multiple_classification(input_date,info):
     composite = Composite(input_date)
     composite.set_info_var_and_files(info_class)
     check_files, file_ref, unavailable_files = composite.check_input_files()
-    if len(unavailable_files) == 0:
-        info_dims = cf.get_spatial_dims_arrays(file_ref, None)
+
 
     if len(unavailable_files) > 0:
         for unavailable_date in unavailable_files:
@@ -842,6 +841,8 @@ def run_multiple_classification(input_date,info):
     if check_files==1:
         print(f'[WARNING] Some of the daily files are not available for the composite.')
 
+    #file_ref is only none if check_files==0
+    info_dims = cf.get_spatial_dims_arrays(file_ref, None)
 
     prob_array,class_array,indices_valid = composite.compute_composite_prob_and_class(type_composite=info['composite_class'])
     pclass = np.arange(0, prob_array.shape[0]).astype(np.int8)
