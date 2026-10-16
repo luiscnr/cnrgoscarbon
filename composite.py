@@ -334,14 +334,16 @@ class Composite:
 
 
         dset = Dataset(input_file)
+        print('337 por si acaso', var_name in dset.variables)
         array = dset.variables[var_name][:] if var_name in dset.variables else None
+        print('339 el array shape es',array.shape)
         dset.close()
 
         array = np.squeeze(array)
-
+        print('343 el array shape es', array.shape)
         if len(array.shape)==3 and is_depth:##depth variables
             array = self.get_integrated_depth(array)
-
+        print('346 el array shape es', array.shape)
         return array
 
     def get_integrated_depth(self,array):
