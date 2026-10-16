@@ -286,18 +286,10 @@ class Composite:
             if self.resampler is not None and array is not None:
                 array = self.resampler.compute_nn_resampled_array(array)
             if array is not None:
-                print('estamos aqui, teneomos el cdom para este dia->',array.shape)
-                print(work_date)
-                print(input_file)
-                print(input_file_format)
-                print(var_name)
-                print(is_depth)
+
                 if all_array is None:
-                    print('es el primer dia sin cdom')
                     output_shape = (n_days,)+array.shape
-                    print('el output shape',n_days,output_shape)
                     all_array = np.ma.masked_all(output_shape)
-                print('all array shape',all_array.shape)
                 all_array[idate,:] = array[:]
             else:
                 print(f'[WARNING] Data for date {work_date.strftime("%Y-%m-%d")} are not available for variable {var_name}')
@@ -310,9 +302,9 @@ class Composite:
             print(f'[ERROR] No data was available for none of the dates in the interval from {start_date} to {end_date}. {stat} could not be computed')
             return None
 
-        if n_no_data<0:
+        if n_no_data>0:
             n_data = n_days-n_no_data
-            print(f'[WARNING] No data was available for sames dates in the interval from {start_date} to {end_date}. {stat} could be computed with only {n_data} days.')
+            print(f'[WARNING] Data was not available for sames dates in the interval from {start_date} to {end_date}. {stat} could be computed with only {n_data} days.')
 
         array_result = None
         if stat=='avg':
@@ -334,16 +326,12 @@ class Composite:
 
 
         dset = Dataset(input_file)
-        print('337 por si acaso', var_name in dset.variables)
         array = dset.variables[var_name][:] if var_name in dset.variables else None
-        print('339 el array shape es',array.shape)
         dset.close()
 
         array = np.squeeze(array)
-        print('343 el array shape es', array.shape)
         if len(array.shape)==3 and is_depth:##depth variables
             array = self.get_integrated_depth(array)
-        print('346 el array shape es', array.shape)
         return array
 
     def get_integrated_depth(self,array):

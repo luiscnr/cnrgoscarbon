@@ -76,8 +76,8 @@ def launch_multiple_cdom_files(input_date,info):
     composite.set_info_var_and_files(info_cdom)
     #print(composite.list_var,info_cdom['list_var'])
     check_files, file_ref, unavailable_files = composite.check_input_files()
-    if len(unavailable_files)==0:
-        info_dims = cf.get_spatial_dims_arrays(file_ref, None)
+
+
 
     if len(unavailable_files) > 0:
         for unavailable_date in unavailable_files:
@@ -149,7 +149,8 @@ def launch_multiple_cdom_files(input_date,info):
         print(f'[WARNING] Some of the daily files are not available for the composite.')
 
     array_out, indices_valid = composite.compute_composite()
-
+    
+    info_dims = cf.get_spatial_dims_arrays(file_ref, None)
 
 
     acdom = xr.DataArray(
