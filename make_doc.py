@@ -797,6 +797,9 @@ def run_multiple_classification(input_date,info):
             info_day['dates_0w'] = [0, 0]
             composite_day.set_info_var_and_files(info_day)
             check_files, file_ref, unavailable_files = composite_day.check_input_files()
+            if check_files==0:
+                print(f'[WARNING] No data is available for computing OWT for date {input_date_here.strftime("%Y-%m-%d")}.')
+                continue
             info_dims = cf.get_spatial_dims_arrays(file_ref, None)
 
             array_out, indices_valid = composite_day.compute_composite()
