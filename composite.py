@@ -286,9 +286,13 @@ class Composite:
             if self.resampler is not None and array is not None:
                 array = self.resampler.compute_nn_resampled_array(array)
             if array is not None:
+                print('estamos aqui, teneomos el cdom para este dia->',array.shape)
                 if all_array is None:
+                    print('es el primer dia sin cdom')
                     output_shape = (n_days,)+array.shape
+                    print('el output shape',n_days,output_shape)
                     all_array = np.ma.masked_all(output_shape)
+                print('all array shape',all_array.shape)
                 all_array[idate,:] = array[:]
             else:
                 print(f'[WARNING] Data for date {work_date.strftime("%Y-%m-%d")} are not available for variable {var_name}')
