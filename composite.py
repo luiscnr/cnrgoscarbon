@@ -287,6 +287,11 @@ class Composite:
                 array = self.resampler.compute_nn_resampled_array(array)
             if array is not None:
                 print('estamos aqui, teneomos el cdom para este dia->',array.shape)
+                print(work_date)
+                print(input_file)
+                print(input_file_format)
+                print(var_name)
+                print(is_depth)
                 if all_array is None:
                     print('es el primer dia sin cdom')
                     output_shape = (n_days,)+array.shape
