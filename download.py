@@ -51,6 +51,7 @@ class LaunchDownload(object):
         }
         output_directory = self.options['output_path']
         ods = self.options['output_path_structure']
+
         output_files = clois.make_cmems_download(cmems_options,True, output_directory, ods, True)
         if self.options['output_file'] is not None:
             output_file_base = self.options['output_file']

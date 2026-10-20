@@ -607,52 +607,59 @@ def run_cdom(options,input_date,week = 0):
 
 def run_mld(options,input_date,week = 0):
     info = options.get_options_as_dict('MLD_COMPOSITE')
-    info['week'] = week
-    composite = Composite(input_date)
-    composite.set_info_var_and_files(info)
 
-    check_files, file_ref, unavailable_dates = composite.check_input_files()
-    if check_files == 0 and info['download'] is None:
-        print(f'[ERROR] Files to compute the MLD composite are not available.')
-        return None
+    array_out, info_dims = [None] * 2
+    if info['path_composite'] is not None and info['file_composite'] is not None and info['variable_composite'] is not None:
+        array_out, info_dims = get_mld_composite(input_date, info, week)
 
-    if info['download'] is not None and check_files <= 1:
-        if len(composite.list_files)>1:
-            print(f'[ERROR] Download is not available for multiple list_files')
+    if array_out is None:
+        info['week'] = week
+        composite = Composite(input_date)
+        composite.set_info_var_and_files(info)
+
+        check_files, file_ref, unavailable_dates = composite.check_input_files()
+        if check_files == 0 and info['download'] is None:
+            print(f'[ERROR] Files to compute the MLD composite are not available.')
             return None
-        print(f'[WARNING] MLD daily files are not available for {len(unavailable_dates)}/{composite.n_days} dates. Trying download....')
-        options_download = options.get_download_options(info['download'])
-        launcher = LaunchDownload(options_download, unavailable_dates)
-        if launcher.launch_download():
-            check_files, file_ref, unavailable_files = composite.check_input_files()
-            if check_files == 0:
-                print(f'[ERROR] Files to compute the MLD composite are not available.')
+
+        if info['download'] is not None and check_files <= 1:
+            if len(composite.list_files)>1:
+                print(f'[ERROR] Download is not available for multiple list_files')
                 return None
-        else:
-            print(f'[ERROR] Download of files to compute the MLD composite was not successful.')
-            return None
+            print(f'[WARNING] MLD daily files are not available for {len(unavailable_dates)}/{composite.n_days} dates. Trying download....')
+            options_download = options.get_download_options(info['download'])
+            launcher = LaunchDownload(options_download, unavailable_dates)
+            if launcher.launch_download():
+                check_files, file_ref, unavailable_files = composite.check_input_files()
+                if check_files == 0:
+                    print(f'[ERROR] Files to compute the MLD composite are not available.')
+                    return None
+            else:
+                print(f'[ERROR] Download of files to compute the MLD composite was not successful.')
+                return None
 
-    if info['resampler'] is not None:
-        type_resampler = info['type_resampler']
-        if type_resampler == 'file_ref':
-            info_dims, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
-        if type_resampler == 'projections':
-            info_dims, resampler = get_resampler_from_area_defs(info, input_date)
-        if resampler is None:
-            print(f'[ERROR] Resampler for MLD dataset could not be initialized.')
-            return None
-        composite.resampler = resampler
+        if info['resampler'] is not None:
+            type_resampler = info['type_resampler']
+            if type_resampler == 'file_ref':
+                info_dims, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
+            if type_resampler == 'projections':
+                info_dims, resampler = get_resampler_from_area_defs(info, input_date)
+            if resampler is None:
+                print(f'[ERROR] Resampler for MLD dataset could not be initialized.')
+                return None
+            composite.resampler = resampler
         # lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
         # if resampler is None:
         #     print(f'[ERROR] Resampler for MLD dataset could not be initialized.')
         #     return None
         #
         # composite.resampler = resampler
-    else:
-        info_dims = get_spatial_dims_arrays(file_ref)
+        else:
+            info_dims = get_spatial_dims_arrays(file_ref)
         #lat_base, lon_base = get_lat_long_arrays(file_ref)
 
-    array_out, indices_valid = composite.compute_composite()
+        array_out, indices_valid = composite.compute_composite()
+
     mld = xr.DataArray(
         np.squeeze(array_out),
         name="MLD",  # Name the variable in the xarray
@@ -683,12 +690,31 @@ def get_sst_composite(input_date,info,week):
                                                  info['file_composite_format'])
     if file_composite is None:
         return None
-
+    print(f'[INFO] Getting SST composite from {start_date.strftime("%Y-%m-%d")} to {end_date.strftime('"%Y-%m-%d"')}f rom file {file_composite}...')
     dcomp = Dataset(file_composite)
     array_out = np.squeeze(dcomp.variables[info['variable_composite']][:])
     dcomp.close()
 
     info_dims, resampler = cf.get_resampler_from_info(input_date,info,file_composite,key='SST COMPOSITE')
+    if resampler is not None:
+        array_out = resampler.compute_nn_resampled_array(array_out)
+
+    return array_out,info_dims
+
+def get_mld_composite(input_date,info,week):
+    start_date, end_date = cf.get_start_end_dates_composite(input_date, info, week)
+    file_composite = cf.get_input_file_composite(input_date, start_date, end_date, info['path_composite'],
+                                                 info['path_composite_org'], info['file_composite'],
+                                                 info['file_composite_format'])
+    if file_composite is None:
+        return None
+
+    print(f'[INFO] Getting MDL composite from {start_date.strftime("%Y-%m-%d")} to {end_date.strftime('"%Y-%m-%d"')}f rom file {file_composite}...')
+    dcomp = Dataset(file_composite)
+    array_out = np.squeeze(dcomp.variables[info['variable_composite']][:])
+    dcomp.close()
+
+    info_dims, resampler = cf.get_resampler_from_info(input_date,info,file_composite,key='MLD COMPOSITE')
     if resampler is not None:
         array_out = resampler.compute_nn_resampled_array(array_out)
 
