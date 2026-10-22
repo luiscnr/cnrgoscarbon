@@ -43,6 +43,24 @@ class OptionsDOC:
     def get_general_model_options(self):
         return self.get_options_as_dict('DOC_MODEL')
 
+    def get_output_path_and_file(self,key,work_path=None,work_path_org = None):
+        key = key.lower()
+        general_options = self.get_general_model_options()
+        path_org = None
+        if work_path is not None:
+            output_path = work_path
+            if work_path_org is not None:
+                path_org = work_path_org
+        else:
+            output_path = general_options[f'path_{key}']
+
+        output_file = general_options[f'file_{key}']
+        name_file_format = general_options[f'format_file_{key}']
+        if path_org is None:
+            path_org = general_options[f'org_path_{key}']
+
+        return output_path,output_file, name_file_format, path_org
+
     def get_download_options(self,section):
         if not self.VALID:
             return None
@@ -262,24 +280,41 @@ class DOCWritter:
         self.ncout.close()
 
 
-def get_datasets(general_model_options,options,input_date):
+def get_datasets(general_model_options,options,input_date,work_path=None,work_path_org=None):
     ##fechas para buscar datasets, siempre 0, -8, -16
     date_minus_1w = input_date - timedelta(days=8)
     date_minus_2w = input_date - timedelta(days=16)
+    path_chl, file_chl, format_chl, org_path_chl = options.get_output_path_and_file('chl',work_path=work_path,work_path_org = work_path_org)
+    path_sst, file_sst, format_sst, org_path_sst = options.get_output_path_and_file('sst', work_path=work_path,work_path_org = work_path_org)
+    path_mld, file_mld, format_mld, org_path_mld = options.get_output_path_and_file('mld', work_path=work_path,work_path_org = work_path_org)
+    path_class, file_class, format_class, org_path_class = options.get_output_path_and_file('class', work_path=work_path,work_path_org = work_path_org)
+    path_cdom, file_cdom,format_cdom, org_path_cdom = options.get_output_path_and_file('cdom', work_path=work_path,work_path_org = work_path_org)
     datasets = {
-        "CHL-1w": [get_input_file(general_model_options['path_chl'],general_model_options['file_chl'],general_model_options['format_file_chl'],date_minus_1w,ref='CHL-1w')],  # Chlorophyll data for one week before the target date.
-        "SST-1w": [get_input_file(general_model_options['path_sst'],general_model_options['file_sst'],general_model_options['format_file_sst'],date_minus_1w,ref='SST-1w')],  # Sea Surface Temperature data for one week before the target date.
-        "MLD-1w": [get_input_file(general_model_options['path_mld'],general_model_options['file_mld'],general_model_options['format_file_mld'],date_minus_1w,ref='MLD-1w')],  # Mixed Layer Depth data for one week before the target date.
-        "CDOM-2w": [get_input_file(general_model_options['path_cdom'],general_model_options['file_cdom'],general_model_options['format_file_cdom'],date_minus_2w,ref='CDOM-2w')],  # CDOM data for two weeks before the target date.
-        "CDOM": [get_input_file(general_model_options['path_cdom'],general_model_options['file_cdom'],general_model_options['format_file_cdom'],input_date,ref='CDOM')],  # CDOM data for the target date.
-        "CandP": [get_input_file(general_model_options['path_class'],general_model_options['file_class'],general_model_options['format_file_class'],input_date,ref='CandP')]  # 'Class_and_Prob' dataset for the target date.
+        "CHL-1w": [get_input_file(path_chl,file_chl,format_file_chl,date_minus_1w,ref='CHL-1w',folder_format=org_path_chl)],  # Chlorophyll data for one week before the target date.
+        "SST-1w": [get_input_file(path_sst,file_sst,format_file_sst,date_minus_1w,ref='SST-1w',folder_format=org_path_sst)],  # Sea Surface Temperature data for one week before the target date.
+        "MLD-1w": [get_input_file(path_mld,file_mld,format_file_mld,date_minus_1w,ref='MLD-1w',folder_format=org_path_mld)],  # Mixed Layer Depth data for one week before the target date.
+        "CDOM-2w": [get_input_file(path_cdom,file_cdom,format_file_cdom,date_minus_2w,ref='CDOM-2w',folder_format=org_path_cdom)],  # CDOM data for two weeks before the target date.
+        "CDOM": [get_input_file(path_cdom,file_cdom,format_file_cdom,input_date,ref='CDOM',folder_format=org_path_cdom)],  # CDOM data for the target date.
+        "CandP": [get_input_file(path_class,file_class,format_file_class,input_date,ref='CandP',folder_format=org_path_class)]  # 'Class_and_Prob' dataset for the target date.
     }
+    # datasets = {
+    #     "CHL-1w": [get_input_file(general_model_options['path_chl'],general_model_options['file_chl'],general_model_options['format_file_chl'],date_minus_1w,ref='CHL-1w')],  # Chlorophyll data for one week before the target date.
+    #     "SST-1w": [get_input_file(general_model_options['path_sst'],general_model_options['file_sst'],general_model_options['format_file_sst'],date_minus_1w,ref='SST-1w')],  # Sea Surface Temperature data for one week before the target date.
+    #     "MLD-1w": [get_input_file(general_model_options['path_mld'],general_model_options['file_mld'],general_model_options['format_file_mld'],date_minus_1w,ref='MLD-1w')],  # Mixed Layer Depth data for one week before the target date.
+    #     "CDOM-2w": [get_input_file(general_model_options['path_cdom'],general_model_options['file_cdom'],general_model_options['format_file_cdom'],date_minus_2w,ref='CDOM-2w')],  # CDOM data for two weeks before the target date.
+    #     "CDOM": [get_input_file(general_model_options['path_cdom'],general_model_options['file_cdom'],general_model_options['format_file_cdom'],input_date,ref='CDOM')],  # CDOM data for the target date.
+    #     "CandP": [get_input_file(general_model_options['path_class'],general_model_options['file_class'],general_model_options['format_file_class'],input_date,ref='CandP')]  # 'Class_and_Prob' dataset for the target date.
+    # }
+
     return datasets
+
+
+
 
 def get_date_week(input_date,week):
     if week == -1:
         output_date = input_date - timedelta(days=8)
-    elif week==-2:
+    elif week == -2:
         output_date = input_date - timedelta(days=16)
     else:
         output_date = input_date
@@ -319,9 +354,9 @@ def get_mask_from_input_datasets(input_datasets):
     return output_mask
 
 
-def get_input_file(input_path,name_file,name_file_date_format,date_here,ref='',none_if_not_exists=True,create_sub_dirs=False):
+def get_input_file(input_path,name_file,name_file_date_format,date_here,ref='',none_if_not_exists=True,create_sub_dirs=False,folder_format='%Y/%j'):
     name_file = name_file.replace('$DATE$',date_here.strftime(name_file_date_format))
-    folder_format = '%Y/%j'
+    #folder_format = '%Y/%j'
     input_path_date = os.path.join(input_path,date_here.strftime(folder_format))
     if not os.path.isdir(input_path_date) and create_sub_dirs:##try to create subdirs
         try:
@@ -449,37 +484,37 @@ def get_spatial_dims_arrays(file_nc):
 
 
 
-def run_dataset(dataset_type,input_date,options):
+def run_dataset(dataset_type,input_date,options,work_path=None,work_path_org=None):
     # date_minus_1w = input_date - timedelta(days=8)
     # date_minus_2w = input_date - timedelta(days=16)
     if dataset_type == 'CandP':
         print(f'[INFO] Starting production of Classification and Probability Dataset for date: {input_date.strftime("%Y-%m-%d")}')
-        return run_classification(options,input_date,week=0)
+        return run_classification(options,input_date,week=0,work_path=work_path,work_path_org = work_path_org)
 
     if dataset_type == 'SST-1w':
         print(f'[INFO] Dataset: {dataset_type}. Starting production of SST composite for date: {input_date.strftime("%Y-%m-%d")} - 1 week')
-        return run_sst(options, input_date,week=-1)
+        return run_sst(options, input_date,week=-1,work_path=work_path,work_path_org = work_path_org)
 
     if dataset_type == 'MLD-1w':
         print(f'[INFO] Dataset: {dataset_type}. Starting production of MLD composite for date: {input_date.strftime("%Y-%m-%d")} - 1 week')
-        return run_mld(options, input_date,week=-1)
+        return run_mld(options, input_date,week=-1,work_path=work_path,work_path_org = work_path_org)
 
     if dataset_type == 'CDOM-2w':
         print(f'[INFO] Dataset: {dataset_type}. Starting production of CDOM composite for date: {input_date.strftime("%Y-%m-%d")} - 2 weeks')
-        return run_cdom(options, input_date, week=-2)
+        return run_cdom(options, input_date, week=-2,work_path=work_path,work_path_org = work_path_org)
 
     if dataset_type == 'CDOM':
         print(f'[INFO] Dataset: {dataset_type}. Starting production of CDOM composite for date: {input_date.strftime("%Y-%m-%d")}')
-        return run_cdom(options, input_date, week=0)
+        return run_cdom(options, input_date, week=0,work_path=work_path,work_path_org = work_path_org)
 
     if dataset_type == 'CHL-1w':
         print(f'[INFO] Dataset: {dataset_type}. Starting production of CHL composite for date: {input_date.strftime("%Y-%m-%d")} -1 week')
-        return run_chl(options, input_date, week = -1)
+        return run_chl(options, input_date, week = -1,work_path=work_path,work_path_org = work_path_org)
 
 
     return None
 
-def run_chl(options,input_date,week=0):
+def run_chl(options,input_date,week=0,work_path=None,work_path_org=None):
     info = options.get_options_as_dict('CHL_COMPOSITE')
     info['week'] = week
     composite = Composite(input_date)
@@ -489,6 +524,8 @@ def run_chl(options,input_date,week=0):
         print(f'[ERROR] Files to compute the chl-a composite are not available.')
         return None
 
+    resampler = None
+    info_dims = None
     if info['resampler'] is not None:
         type_resampler = info['type_resampler']
         if type_resampler == 'file_ref':
@@ -505,6 +542,10 @@ def run_chl(options,input_date,week=0):
         #lat_base, lon_base = get_lat_long_arrays(file_ref)
         info_dims = get_spatial_dims_arrays(file_ref)
 
+    if info_dims is None:
+        print(f'[ERROR][run_chl] Information on dimensions could not be retrieved.')
+        return None
+
     array_out, indices_valid = composite.compute_composite()
 
     chl = xr.DataArray(
@@ -517,13 +558,9 @@ def run_chl(options,input_date,week=0):
         chl['lat'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lat_array'])
         chl['lon'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lon_array'])
 
-    # chl = xr.DataArray(
-    #     np.squeeze(array_out),
-    #     name="CHL",  # Name the variable in the xarray
-    #     dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
-    #     coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
-    # )
-    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', get_date_week(input_date,week),create_sub_dirs=True, none_if_not_exists=False)
+    path_chl, file_chl, format_chl, org_path_chl = options.get_output_path_and_file('chl', work_path=work_path,work_path_org = work_path_org)
+    file_out = get_input_file(path_chl,file_chl,format_chl,get_date_week(input_date,week),create_sub_dirs=True,none_if_not_exists=False,folder_format=org_path_chl)
+    #file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', get_date_week(input_date,week),create_sub_dirs=True, none_if_not_exists=False)
     chl.to_netcdf(file_out)
     print(f'[INFO] CHL composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
 
@@ -531,9 +568,17 @@ def run_chl(options,input_date,week=0):
 
 
 
-def run_cdom(options,input_date,week = 0):
+def run_cdom(options,input_date,week = 0,work_path=None,work_path_org=None):
     info = options.get_options_as_dict('CDOM_COMPOSITE')
     info['week'] = week
+
+    path_cdom, file_cdom, format_cdom, org_path_cdom = options.get_output_path_and_file('cdom', work_path=work_path,work_path_org = work_path_org)
+    info['output_path'] = path_cdom
+    info['output_file'] = file_cdom
+    info['format_output_file'] = format_cdom
+    info['org_path_output'] = org_path_cdom
+
+
     if info['input_type']=='cdom_daily':
         file_out = cdom_main.launch_multiple_cdom_files(input_date,info)
         return file_out
@@ -545,6 +590,8 @@ def run_cdom(options,input_date,week = 0):
         print(f'[ERROR] Files to compute the chl-a composite are not available.')
         return None
 
+    resampler = None
+    info_dims = None
     if info['resampler'] is not None:
         type_resampler = info['type_resampler']
         if type_resampler == 'file_ref':
@@ -555,11 +602,12 @@ def run_cdom(options,input_date,week = 0):
             print(f'[ERROR] Resampler for SST dataset could not be initialized.')
             return None
         composite.resampler = resampler
-        # lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
-        # composite.resampler = resampler
     else:
         info_dims = get_spatial_dims_arrays(file_ref)
-        #lat_base, lon_base = get_lat_long_arrays(file_ref)
+
+    if info_dims is None:
+        print(f'[ERROR][run_cdom] info_dims could not be retrieved.')
+        return None
 
     array_out, indices_valid = composite.compute_composite()
     indices_valid_by_band = [(np.array([x]).astype(np.int32),) + indices_valid for x in range(6)]
@@ -599,13 +647,13 @@ def run_cdom(options,input_date,week = 0):
         acdom['lat'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lat_array'])
         acdom['lon'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lon_array'])
 
-    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', get_date_week(input_date,week),create_sub_dirs=True, none_if_not_exists=False)
+    file_out = get_input_file(info['output_path'], info['output_file'], info['format_output_file'], get_date_week(input_date,week),create_sub_dirs=True, none_if_not_exists=False,folder_format=info['org_path_output'])
     acdom.to_netcdf(file_out)
     print(f'[INFO] CDOM composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
 
     return file_out
 
-def run_mld(options,input_date,week = 0):
+def run_mld(options,input_date,week = 0,work_path=None,work_path_org=None):
     info = options.get_options_as_dict('MLD_COMPOSITE')
 
     array_out, info_dims = [None] * 2
@@ -637,7 +685,7 @@ def run_mld(options,input_date,week = 0):
             else:
                 print(f'[ERROR] Download of files to compute the MLD composite was not successful.')
                 return None
-
+        resampler = None
         if info['resampler'] is not None:
             type_resampler = info['type_resampler']
             if type_resampler == 'file_ref':
@@ -648,18 +696,14 @@ def run_mld(options,input_date,week = 0):
                 print(f'[ERROR] Resampler for MLD dataset could not be initialized.')
                 return None
             composite.resampler = resampler
-        # lat_base, lon_base, resampler = get_resampler_from_info_and_file_ref(info, file_ref, input_date)
-        # if resampler is None:
-        #     print(f'[ERROR] Resampler for MLD dataset could not be initialized.')
-        #     return None
-        #
-        # composite.resampler = resampler
         else:
             info_dims = get_spatial_dims_arrays(file_ref)
-        #lat_base, lon_base = get_lat_long_arrays(file_ref)
 
         array_out, indices_valid = composite.compute_composite()
 
+    if info_dims is None:
+        print(f'[ERROR][run_mld] info_dims could not be retrieved.')
+        return None
     mld = xr.DataArray(
         np.squeeze(array_out),
         name="MLD",  # Name the variable in the xarray
@@ -670,13 +714,10 @@ def run_mld(options,input_date,week = 0):
     if info_dims['lat_array'] is not None and info_dims['lon_array'] is not None:
         mld['lat'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lat_array'])
         mld['lon'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lon_array'])
-    # sst = xr.DataArray(
-    #     np.squeeze(array_out),
-    #     name="MLD",  # Name the variable in the xarray
-    #     dims=["lat", "lon"],  # Dimensions are assumed to be latitude and longitude
-    #     coords={"lat":lat_base, "lon": lon_base}  # Use the existing coordinates from the input data
-    # )
-    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', get_date_week(input_date,week), create_sub_dirs=True,none_if_not_exists=False)
+
+    path_mld, file_mld, format_mld, org_path_mld = options.get_output_path_and_file('mld', work_path=work_path,work_path_org = work_path_org)
+    file_out = get_input_file(path_mld, file_mld, format_mld,get_date_week(input_date,week),create_sub_dirs=True,none_if_not_exists=False,folder_format=org_path_mld)
+    #file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', get_date_week(input_date,week), create_sub_dirs=True,none_if_not_exists=False)
     mld.to_netcdf(file_out)
     print(f'[INFO] MLD composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
 
@@ -720,15 +761,14 @@ def get_mld_composite(input_date,info,week):
 
     return array_out,info_dims
 
-def run_sst(options,input_date,week=0):
-    #print('--------------------------------------------------------------------------------------------->',input_date,week)
+def run_sst(options,input_date,week=0,work_path=None,work_path_org=None):
+
     info = options.get_options_as_dict('SST_COMPOSITE')
-    #print(info)
+
 
     array_out,  info_dims = [None]*2
     if info['path_composite'] is not None and info['file_composite'] is not None and info['variable_composite'] is not None:
         array_out,info_dims = get_sst_composite(input_date,info,week)
-
 
     if array_out is None:
         info['week'] = week
@@ -775,6 +815,10 @@ def run_sst(options,input_date,week=0):
 
         array_out, indices_valid = composite.compute_composite()
 
+    if info_dims is None:
+        print(f'[ERROR][run_sst] info_dims could not be retrieved.')
+        return None
+
     sst = xr.DataArray(
         np.squeeze(array_out),
         name="SST",  # Name the variable in the xarray
@@ -785,7 +829,9 @@ def run_sst(options,input_date,week=0):
         sst['lat'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lat_array'])
         sst['lon'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lon_array'])
 
-    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j',get_date_week(input_date,week),create_sub_dirs=True, none_if_not_exists=False)
+    path_sst, file_sst, format_sst, org_path_sst = options.get_output_path_and_file('sst', work_path=work_path,work_path_org = work_path_org)
+    file_out = get_input_file(path_sst,file_sst,format_sst,get_date_week(input_date,week),create_sub_dirs=True, none_if_not_exists=False,folder_format=org_path_sst)
+    #file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j',get_date_week(input_date,week),create_sub_dirs=True, none_if_not_exists=False)
     sst.to_netcdf(file_out)
     print(f'[INFO] SST composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
 
@@ -805,7 +851,6 @@ def run_multiple_classification(input_date,info):
     info_class['list_files'] = [info['file_class']]
     info_class['list_files_format'] = [info['file_class_format']]
     info_class['list_var'] = info['var_class']
-
 
 
     composite = Composite(input_date)
@@ -890,18 +935,29 @@ def run_multiple_classification(input_date,info):
         dataset_out['lat'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lat_array'])
         dataset_out['lon'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lon_array'])
 
-    file_out = get_input_file(info['output_path'], info['output_file'], '%Y%j', get_date_week(input_date,info['week']), create_sub_dirs=True,
-                              none_if_not_exists=False)
+
+
+    file_out = get_input_file(info['output_path'], info['output_file'],  info['format_output_file'], get_date_week(input_date,info['week']), create_sub_dirs=True,
+                              none_if_not_exists=False,folder_format=info['org_path_output'])
+
     dataset_out.to_netcdf(file_out)
+
     print(f'[INFO] Dataset Classification and Probability saved to {file_out}')
 
 
     return file_out
 
-def run_classification(options,input_date,week=0):
+def run_classification(options,input_date,week=0,work_path=None,work_path_org=None):
 
     info = options.get_options_as_dict('CLASS_COMPOSITE')
     info['week'] = week
+
+    path_class, file_class, format_class, org_path_class = options.get_output_path_and_file('class',work_path=work_path,work_path_org = work_path_org)
+    info['output_path'] = path_class
+    info['output_file'] = file_class
+    info['format_output_file'] = format_class
+    info['org_path_output'] = org_path_class
+
     if info['input_type']=='class_daily':
         return run_multiple_classification(input_date,info)
 
@@ -913,7 +969,8 @@ def run_classification(options,input_date,week=0):
     if check_files == 0 and info['download'] is None:
         print(f'[ERROR] Files to compute the OWT composite are not available.')
         return None
-
+    resampler = None
+    info_dims = None
     if info['resampler'] is not None:
         type_resampler = info['type_resampler']
         if type_resampler == 'file_ref':
@@ -930,6 +987,9 @@ def run_classification(options,input_date,week=0):
         #lat_base, lon_base = get_lat_long_arrays(file_ref)
         info_dims = get_spatial_dims_arrays(file_ref)
 
+    if info_dims is None:
+        print(f'[ERROR][run_classification] info_dims could not be retrieved.')
+        return None
 
     array_out,indices_valid = composite.compute_composite()
     shape_out = array_out.shape[1:]
@@ -967,11 +1027,11 @@ def run_classification(options,input_date,week=0):
 
     print(f'[INFO] Running classification: Completed')
 
-    file_ref = composite.get_file_ref()
-    dset = Dataset(file_ref)
-    lat = dset.variables['lat'][:]
-    lon = dset.variables['lon'][:]
-    dset.close()
+    # file_ref = composite.get_file_ref()
+    # dset = Dataset(file_ref)
+    # lat = dset.variables['lat'][:]
+    # lon = dset.variables['lon'][:]
+    # dset.close()
     dataset_out = xr.Dataset(
         {
             "Class": ([info_dims['y_name'], info_dims['x_name']], class_array),
@@ -991,7 +1051,10 @@ def run_classification(options,input_date,week=0):
         dataset_out['lat'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lat_array'])
         dataset_out['lon'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lon_array'])
 
-    file_out = get_input_file(info['output_path'],info['output_file'],'%Y%j',get_date_week(input_date,week),create_sub_dirs=True,none_if_not_exists=False)
+    #file_out = get_input_file(info['output_path'],info['output_file'],'%Y%j',get_date_week(input_date,week),create_sub_dirs=True,none_if_not_exists=False)
+    file_out = get_input_file(info['output_path'], info['output_file'], info['format_output_file'],
+                              get_date_week(input_date, info['week']), create_sub_dirs=True,
+                              none_if_not_exists=False, folder_format=info['org_path_output'])
     dataset_out.to_netcdf(file_out)
     print(f'[INFO] Dataset Classification and Probability saved to {file_out}')
 
@@ -1128,6 +1191,15 @@ def main(args_d):
     if start_date is None:
         return
 
+    work_path = args_d['work_path']
+    if work_path is not None and not os.path.isdir(work_path):
+        try:
+            os.makedirs(work_path, exist_ok=True)
+        except OSError as ex:
+            print(f'[ERROR] {work_path} does not exist and could not be created: {ex}')
+            return
+    work_path_org = args_d['work_path_org']
+
     options = OptionsDOC(args_d['config_file'])
     if not options.VALID:
         return
@@ -1159,13 +1231,13 @@ def main(args_d):
             input_date = input_date + timedelta(days=1)
             continue
 
-        dataset_dict = get_datasets(general_model_options,options,input_date)
+        dataset_dict = get_datasets(general_model_options,options,input_date,work_path=work_path,work_path_org=work_path_org)
         unavailable_datasets = False
         for dataset in dataset_dict:
             print(f'-------------------------------------------------------------------------------------------------------')
             if dataset_dict[dataset][0] is None:
                 print(f'[INFO] Dataset {dataset} is not available. Launched run...')
-                file_out = run_dataset(dataset,input_date,options)
+                file_out = run_dataset(dataset,input_date,options,work_path=work_path,work_path_org=work_path_org)
                 if file_out is None:
                     if not general_model_options['create_empty_if_not_datasets']:
                         print(f'[ERROR] Dataset {dataset} is not available and could not be created. DOC will not be created.')
@@ -1254,6 +1326,8 @@ if __name__ == "__main__":
     parser.add_argument('-only_datasets',"--only_get_datasets",help="Mode to retrieve the datasets without launching the DOC",action="store_true")
     parser.add_argument('-sd', "--start_date", help="Start Date: YYYY-mm-dd")
     parser.add_argument('-ed', "--end_date", help="End Date: YYYY-mm-dd")
+    parser.add_argument('-wp', "--work_path",help="Work path, overrides all the paths for the temporal aggregations in [DOC_MODEL]")
+    parser.add_argument('-wpo', "--work_path_org", default="", help="Work path folder organization")
     args = parser.parse_args()
     args_dict = vars(args)
     main(args_dict)

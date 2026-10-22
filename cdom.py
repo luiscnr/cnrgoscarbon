@@ -69,14 +69,12 @@ def launch_multiple_cdom_files(input_date,info):
     week = 0
     if 'week' in info and info['week'] is not None:
         week = int(info['week'])
-    dates_key = f'dates_{int(week * (-1))}w'
+    #dates_key = f'dates_{int(week * (-1))}w'
 
 
     composite = Composite(input_date)
     composite.set_info_var_and_files(info_cdom)
-    #print(composite.list_var,info_cdom['list_var'])
     check_files, file_ref, unavailable_files = composite.check_input_files()
-
 
 
     if len(unavailable_files) > 0:
@@ -105,18 +103,18 @@ def launch_multiple_cdom_files(input_date,info):
                                                         array_out[indices_valid_by_band[5]],
                                                         date_here=input_date)
                     cdom_array = cdomModel.run_model(nowstr=nowstr)
+                    if cdom_array is None:
+                        retries = 5
+                        index_retry = 1
+                        while index_retry <= retries:
+                            print(f'[INFO] Waiting for 1 minute and retrying to run the CDOM model: {index_retry}....')
+                            time.sleep(60)
+                            cdom_array = cdomModel.run_model(nowstr=nowstr)
+                            if cdom_array is not None:
+                                break
+                            index_retry = index_retry + 1
                 else:
                     cdom_array = np.array([]).astype(array_out.dtype)
-                if cdom_array is None:
-                    retries = 5
-                    index_retry = 1
-                    while index_retry <= retries:
-                        print(f'[INFO] Waiting for 1 minute and retrying to run the CDOM model: {index_retry}....')
-                        time.sleep(60)
-                        cdom_array = cdomModel.run_model(nowstr=nowstr)
-                        if cdom_array is not None:
-                            break
-                        index_retry = index_retry + 1
                 if cdom_array is None:
                     return None
 
@@ -136,8 +134,8 @@ def launch_multiple_cdom_files(input_date,info):
                     acdom['lat'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lat_array'])
                     acdom['lon'] = ((info_dims['y_name'], info_dims['x_name']), info_dims['lon_array'])
 
-                file_out = cf.get_input_file(info['input_path_cdom'], info['file_cdom'], info['file_cdom_format'], input_date_here,
-                                          create_sub_dirs=True, none_if_not_exists=False)
+
+                file_out = cf.get_input_file(info['input_path_cdom'], info['file_cdom'], info['file_cdom_format'], input_date_here,create_sub_dirs=True, none_if_not_exists=False)
                 acdom.to_netcdf(file_out)
                 print(f'[INFO] CDOM composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
 
@@ -149,9 +147,7 @@ def launch_multiple_cdom_files(input_date,info):
         print(f'[WARNING] Some of the daily files are not available for the composite.')
 
     array_out, indices_valid = composite.compute_composite()
-    ##file_ref is only None for check_files==0
     info_dims = cf.get_spatial_dims_arrays(file_ref, None)
-
 
     acdom = xr.DataArray(
         np.squeeze(array_out),
@@ -169,8 +165,11 @@ def launch_multiple_cdom_files(input_date,info):
         input_date_week = input_date - timedelta(days=8)
     elif week == -2:
         input_date_week = input_date - timedelta(days=16)
-    file_out = cf.get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date_week, create_sub_dirs=True,
-                              none_if_not_exists=False)
+    # file_out = cf.get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date_week, create_sub_dirs=True,
+    #                           none_if_not_exists=False)
+    file_out = get_input_file(info['output_path'], info['output_file'], info['format_output_file'],input_date_week, create_sub_dirs=True, none_if_not_exists=False,folder_format=info['org_path_output'])
+
+
     acdom.to_netcdf(file_out)
     print(f'[INFO] CDOM composite for date {input_date.strftime("%Y-%m-%d")} is saved to {file_out}')
 
