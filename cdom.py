@@ -167,7 +167,7 @@ def launch_multiple_cdom_files(input_date,info):
         input_date_week = input_date - timedelta(days=16)
     # file_out = cf.get_input_file(info['output_path'], info['output_file'], '%Y%j', input_date_week, create_sub_dirs=True,
     #                           none_if_not_exists=False)
-    file_out = get_input_file(info['output_path'], info['output_file'], info['format_output_file'],input_date_week, create_sub_dirs=True, none_if_not_exists=False,folder_format=info['org_path_output'])
+    file_out = cf.get_input_file(info['output_path'], info['output_file'], info['format_output_file'],input_date_week, create_sub_dirs=True, none_if_not_exists=False,folder_format=info['org_path_output'])
 
 
     acdom.to_netcdf(file_out)

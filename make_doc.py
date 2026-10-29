@@ -32,20 +32,24 @@ class OptionsDOC:
             print(f'[ERROR] Problem retrieving options from the configuration file {config_file}')
             self.VALID = False
 
-    def get_options_as_dict(self,section):
+    def get_options_as_dict(self,section,work_path_defined = False):
         if not self.VALID:
             return None
         poptions,required_list = self.cmanager.get_retrieve_options(section)
+        if work_path_defined:
+            for key in ['path_cdom','path_sst','path_mld','path_chl','path_class']:
+                if key in required_list:
+                    required_list.remove(key)
         options_dict = self.omanager.get_options_as_dict(section,poptions,required_list)
 
         return options_dict
 
-    def get_general_model_options(self):
-        return self.get_options_as_dict('DOC_MODEL')
+    def get_general_model_options(self,work_path_defined = False):
+        return self.get_options_as_dict('DOC_MODEL',work_path_defined=work_path_defined)
 
     def get_output_path_and_file(self,key,work_path=None,work_path_org = None):
         key = key.lower()
-        general_options = self.get_general_model_options()
+        general_options = self.get_general_model_options(work_path_defined=True if work_path is not None else False)
         path_org = None
         if work_path is not None:
             output_path = work_path
@@ -290,12 +294,12 @@ def get_datasets(general_model_options,options,input_date,work_path=None,work_pa
     path_class, file_class, format_class, org_path_class = options.get_output_path_and_file('class', work_path=work_path,work_path_org = work_path_org)
     path_cdom, file_cdom,format_cdom, org_path_cdom = options.get_output_path_and_file('cdom', work_path=work_path,work_path_org = work_path_org)
     datasets = {
-        "CHL-1w": [get_input_file(path_chl,file_chl,format_file_chl,date_minus_1w,ref='CHL-1w',folder_format=org_path_chl)],  # Chlorophyll data for one week before the target date.
-        "SST-1w": [get_input_file(path_sst,file_sst,format_file_sst,date_minus_1w,ref='SST-1w',folder_format=org_path_sst)],  # Sea Surface Temperature data for one week before the target date.
-        "MLD-1w": [get_input_file(path_mld,file_mld,format_file_mld,date_minus_1w,ref='MLD-1w',folder_format=org_path_mld)],  # Mixed Layer Depth data for one week before the target date.
-        "CDOM-2w": [get_input_file(path_cdom,file_cdom,format_file_cdom,date_minus_2w,ref='CDOM-2w',folder_format=org_path_cdom)],  # CDOM data for two weeks before the target date.
-        "CDOM": [get_input_file(path_cdom,file_cdom,format_file_cdom,input_date,ref='CDOM',folder_format=org_path_cdom)],  # CDOM data for the target date.
-        "CandP": [get_input_file(path_class,file_class,format_file_class,input_date,ref='CandP',folder_format=org_path_class)]  # 'Class_and_Prob' dataset for the target date.
+        "CHL-1w": [get_input_file(path_chl,file_chl,format_chl,date_minus_1w,ref='CHL-1w',folder_format=org_path_chl)],  # Chlorophyll data for one week before the target date.
+        "SST-1w": [get_input_file(path_sst,file_sst,format_sst,date_minus_1w,ref='SST-1w',folder_format=org_path_sst)],  # Sea Surface Temperature data for one week before the target date.
+        "MLD-1w": [get_input_file(path_mld,file_mld,format_mld,date_minus_1w,ref='MLD-1w',folder_format=org_path_mld)],  # Mixed Layer Depth data for one week before the target date.
+        "CDOM-2w": [get_input_file(path_cdom,file_cdom,format_cdom,date_minus_2w,ref='CDOM-2w',folder_format=org_path_cdom)],  # CDOM data for two weeks before the target date.
+        "CDOM": [get_input_file(path_cdom,file_cdom,format_cdom,input_date,ref='CDOM',folder_format=org_path_cdom)],  # CDOM data for the target date.
+        "CandP": [get_input_file(path_class,file_class,format_class,input_date,ref='CandP',folder_format=org_path_class)]  # 'Class_and_Prob' dataset for the target date.
     }
     # datasets = {
     #     "CHL-1w": [get_input_file(general_model_options['path_chl'],general_model_options['file_chl'],general_model_options['format_file_chl'],date_minus_1w,ref='CHL-1w')],  # Chlorophyll data for one week before the target date.
@@ -1204,7 +1208,7 @@ def main(args_d):
     if not options.VALID:
         return
 
-    general_model_options = options.get_general_model_options()
+    general_model_options = options.get_general_model_options(work_path_defined=True if work_path is not None else False)
     if general_model_options is None:
         return
 
@@ -1277,7 +1281,6 @@ def main(args_d):
             input_date = input_date + timedelta(days=1)
             continue
 
-
         ## Call the Run_DOC_model function, passing the datasets and the current date as arguments to compute the DOC values
         print(f'[INFO] Running the DOC model...')
         DOC = Run_DOC_model(dataset_dict, input_date)
@@ -1302,20 +1305,6 @@ def main(args_d):
         create_doc_file_impl(input_date,output_file,file_ref,doc_array,add_l3=general_model_options['add_doc_l3_with_mask'],array_l3=doc_array_l3)
         print(f'[INFO] Output file {output_file} has been generated.')
         input_date = input_date + timedelta(days=1)
-
-    # # Save the DOC and DOC_abc datasets as netCDF files in the folder path.
-    # DOC.to_netcdf(output_file)  # Save the DOC dataset to a netCDF file
-    # print(f'[INFO] DOC model saved to {output_file}')
-
-    # print(f'[INFO] Applying the mask...')
-    # DOC['doc'].data[0,mask] = np.nan
-    #
-    # # Save the DOC and DOC_abc datasets as netCDF files in the folder path.
-    # DOC.to_netcdf(output_file)  # Save the DOC dataset to a netCDF file
-    # print(f'[INFO] DOC model saved to {output_file}')
-
-
-
 
 if __name__ == "__main__":
     print(f'[INFO] Started CNR-GOS Carbon tool!')
