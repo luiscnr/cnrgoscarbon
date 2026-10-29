@@ -661,8 +661,16 @@ def run_mld(options,input_date,week = 0,work_path=None,work_path_org=None):
     info = options.get_options_as_dict('MLD_COMPOSITE')
 
     array_out, info_dims = [None] * 2
-    if info['path_composite'] is not None and info['file_composite'] is not None and info['variable_composite'] is not None:
-        array_out, info_dims = get_mld_composite(input_date, info, week)
+    # if info['path_composite'] is not None and info['file_composite'] is not None and info['variable_composite'] is not None:
+    #     array_out, info_dims = get_mld_composite(input_date, info, week)
+    array_out, info_dims = [None] * 2
+    if info['file_composite'] is not None and info['variable_composite'] is not None:
+        if info['path_composite'] is None and work_path is not None:
+            info['path_composite'] = work_path
+            info['path_composite_org'] = work_path_org
+
+        if info['path_composite'] is not None:
+            array_out, info_dims = get_mld_composite(input_date, info, week)
 
     if array_out is None:
         info['week'] = week
@@ -771,8 +779,13 @@ def run_sst(options,input_date,week=0,work_path=None,work_path_org=None):
 
 
     array_out,  info_dims = [None]*2
-    if info['path_composite'] is not None and info['file_composite'] is not None and info['variable_composite'] is not None:
-        array_out,info_dims = get_sst_composite(input_date,info,week)
+    if info['file_composite'] is not None and info['variable_composite'] is not None:
+        if info['path_composite'] is None and work_path is not None:
+            info['path_composite'] = work_path
+            info['path_composite_org'] = work_path_org
+
+        if info['path_composite'] is not None:
+            array_out,info_dims = get_sst_composite(input_date,info,week)
 
     if array_out is None:
         info['week'] = week
