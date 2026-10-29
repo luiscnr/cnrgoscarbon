@@ -107,7 +107,7 @@ def run_date(poc_options,chl_options,input_date):
 
 
 
-    poc_run.create_ncout(file_out,input_date,shape_orig,indices_valid,info_dims,file_reference=reference_file,name_sources=name_sources,add_poc_l3=poc_options['add_doc_l3_with_mask'])
+    poc_run.create_ncout(file_out,input_date,shape_orig,indices_valid,info_dims,file_reference=reference_file,name_sources=name_sources,add_poc_l3=poc_options['add_poc_l3_with_mask'])
 
 
     # ##creting 2d poc array

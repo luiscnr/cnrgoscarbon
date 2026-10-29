@@ -189,7 +189,7 @@ class PocAlgorithms:
             try:
                 dref = Dataset(file_reference,'r')
             except Exception as ex:
-                print(f'[WARNING] Reference file could not be opened. Some attributes could not be added. Excption: {ex}')
+                print(f'[WARNING] Reference file could not be opened. Some attributes could not be added. Exception: {ex}')
         y_array = info_dims['y_array']
         x_array = info_dims['x_array']
         ny = len(y_array)
