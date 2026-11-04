@@ -133,14 +133,14 @@ class CDOMRun:
                                             coords={info_dims['y_name']: y_array, info_dims['x_name']: x_array})
 
                 acdom_dataset =xr.Dataset({
-                    'Acdom-sat': acdom,
+                    'Acdom_sat': acdom,
                     'lat': xr_lat_array,
                     'lon': xr_lon_array,
                 })
             else:
                 print(f'[ERROR] Dimensions of latitude ({lat_array.shape}) and longitude ({lon_array.shape}) arrays are inconsistent with the expected y,x dimensions {ny,nx}')
         else:
-            acdom_dataset = xr.Dataset({'Acdom-sat': acdom})
+            acdom_dataset = xr.Dataset({'Acdom_sat': acdom})
 
         if acdom_dataset is not None:
             acdom_dataset.to_netcdf(file_out)
