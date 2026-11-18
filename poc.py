@@ -85,12 +85,10 @@ class PocAlgorithms:
             return True
 
         print(f'[INFO] Running classification...')
-        print(self.rrs_array.shape)
         try:
-            self.Class, self.proba, _, _, _, _ = classification(self.rrs_array[self.brefs['412'],:], self.rrs_array[self.brefs['443'],:],
-                                              self.rrs_array[self.brefs['490'],:], self.rrs_array[self.brefs['510'],:],
-                                              self.rrs_array[self.brefs['555'],:], self.rrs_array[self.brefs['670'],:])
-
+            self.Class, self.proba, _, _, _, _ = classification(np.array(self.rrs_array[self.brefs['412'],:]), np.array(self.rrs_array[self.brefs['443'],:]),
+                                              np.array(self.rrs_array[self.brefs['490'],:]), np.array(self.rrs_array[self.brefs['510'],:]),
+                                              np.array(self.rrs_array[self.brefs['555'],:]), np.array(self.rrs_array[self.brefs['670'],:]))
             return True
         except Exception as ex:
             print(f'[ERROR] Classification OWT algorithm failed: {ex}')
