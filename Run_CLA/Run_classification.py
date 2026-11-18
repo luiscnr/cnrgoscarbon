@@ -280,19 +280,14 @@ def classification(NRRS412, NRRS443, NRRS490, NRRS510, NRRS560, NRRS665):
     C[Flag4 ==True] = Cflag
 
     #transform P and Pflag into an np.array and squeeze them
-    print(len(P))
-    print(len(Pflag))
-    print('285')
-    print(P)
-    print(Pflag)
     P     = np.array(P).squeeze()
     Pflag = np.array(Pflag).squeeze()
-    print(P.shape)
-    print(Pflag.shape)
+
 
     # Step 4: Replace old P values with new ones
-    for i in range(17):
-       P[i][Flag4==True] = Pflag[i] # Replace rows in each probability array
+    if np.sum(Flag4)>0:
+        for i in range(17):
+            P[i][Flag4==True] = Pflag[i] # Replace rows in each probability array
 
    
     return C, P, np.array(Flag1), np.array(Flag2), np.array(Flag3), np.array(Flag4)
