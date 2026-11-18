@@ -265,9 +265,8 @@ def classification(NRRS412, NRRS443, NRRS490, NRRS510, NRRS560, NRRS665):
     Flag4 = (Flag3==True) & (np.array(C) == 1)
     
 
-    #relaunch Classification if Flag4 is true => False indentification of class 1
-  
-  
+
+    #relaunch Classification if Flag4 is true => False identification of class 1
     flagged_ip = [np.array(data)[Flag4] for data in ip1]
     flagged_ip=np.array(flagged_ip).T
     
@@ -280,16 +279,13 @@ def classification(NRRS412, NRRS443, NRRS490, NRRS510, NRRS560, NRRS665):
     # Step 3: Replace old C values with new ones
     C[Flag4 ==True] = Cflag
 
-    #transform P and Pflag into an np.array and squeeze them 
+    #transform P and Pflag into an np.array and squeeze them
+    print(P.shape)
+    print(Pflag.shape)
+    print('285')
     P     = np.array(P).squeeze()
     Pflag = np.array(Pflag).squeeze()
 
-    print(type(P),type(Pflag))
-    print(type(Flag4))
-    print(Flag4)
-    print(P)
-    print(Pflag)
-    print(Flag4)
 
     # Step 4: Replace old P values with new ones
     for i in range(17):
