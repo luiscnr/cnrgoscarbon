@@ -120,7 +120,10 @@ class PocAlgorithms:
         )
 
         # Weighted POC for the different OWC
-        print('--> line 123',self.proba.shape)
+        ##with only one pixel, self.proba shape es (17,), it should be (17,1), expand dims to make consistent
+        if len(self.proba.shape)==1 and self.proba.shape[0]==17:
+            self.proba = np.expand_dims(self.proba,1)
+
         proba_tran = np.sum(self.proba[1:8, :], axis=0)
         proba_loisel = np.sum(self.proba[8:, :], axis=0)
 
