@@ -284,9 +284,13 @@ def classification(NRRS412, NRRS443, NRRS490, NRRS510, NRRS560, NRRS665):
     P     = np.array(P).squeeze()
     Pflag = np.array(Pflag).squeeze()
 
-    print(type(P),P.shape)
-    print(type(Pflag),Pflag.shape)
-    
+    print(type(P),type(Pflag))
+    print(type(Flag4))
+    print(Flag4)
+    print(P)
+    print(Pflag)
+    print(Flag4)
+
     # Step 4: Replace old P values with new ones
     for i in range(17):
        P[i][Flag4==True] = Pflag[i] # Replace rows in each probability array
