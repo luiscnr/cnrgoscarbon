@@ -283,9 +283,12 @@ def classification(NRRS412, NRRS443, NRRS490, NRRS510, NRRS560, NRRS665):
     print(len(P))
     print(len(Pflag))
     print('285')
+    print(P)
+    print(Pflag)
     P     = np.array(P).squeeze()
     Pflag = np.array(Pflag).squeeze()
-
+    print(P.shape)
+    print(Pflag.shape)
 
     # Step 4: Replace old P values with new ones
     for i in range(17):
