@@ -85,6 +85,7 @@ class PocAlgorithms:
             return True
 
         print(f'[INFO] Running classification...')
+        print(self.rrs_array.shape)
         try:
             self.Class, self.proba, _, _, _, _ = classification(self.rrs_array[self.brefs['412'],:], self.rrs_array[self.brefs['443'],:],
                                               self.rrs_array[self.brefs['490'],:], self.rrs_array[self.brefs['510'],:],
