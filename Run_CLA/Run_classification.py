@@ -283,6 +283,9 @@ def classification(NRRS412, NRRS443, NRRS490, NRRS510, NRRS560, NRRS665):
     #transform P and Pflag into an np.array and squeeze them 
     P     = np.array(P).squeeze()
     Pflag = np.array(Pflag).squeeze()
+
+    print(type(P),P.shape)
+    print(type(Pflag),Pflag.shape)
     
     # Step 4: Replace old P values with new ones
     for i in range(17):
