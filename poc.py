@@ -120,6 +120,7 @@ class PocAlgorithms:
         )
 
         # Weighted POC for the different OWC
+        print('--> line 123',self.proba.shape)
         proba_tran = np.sum(self.proba[1:8, :], axis=0)
         proba_loisel = np.sum(self.proba[8:, :], axis=0)
 
