@@ -286,7 +286,7 @@ class Composite:
             if self.resampler is not None and array is not None:
                 array = self.resampler.compute_nn_resampled_array(array)
             if array is not None:
-                print(array.shape)
+                print('289->',array.shape)
                 if all_array is None:
                     output_shape = (n_days,)+array.shape
                     all_array = np.ma.masked_all(output_shape)
@@ -328,8 +328,9 @@ class Composite:
         dset = Dataset(input_file)
         array = dset.variables[var_name][:] if var_name in dset.variables else None
         dset.close()
-
+        print('331--> orig',array.shape,'input file:',input_file)
         array = np.squeeze(array)
+        print('333--> array tras squeuez', array.shape)
         if len(array.shape)==3 and is_depth:##depth variables
             array = self.get_integrated_depth(array)
         return array
