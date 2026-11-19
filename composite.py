@@ -286,7 +286,7 @@ class Composite:
             if self.resampler is not None and array is not None:
                 array = self.resampler.compute_nn_resampled_array(array)
             if array is not None:
-
+                print(array.shape)
                 if all_array is None:
                     output_shape = (n_days,)+array.shape
                     all_array = np.ma.masked_all(output_shape)
