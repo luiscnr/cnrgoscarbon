@@ -742,7 +742,7 @@ def get_sst_composite(input_date,info,week):
                                                  info['path_composite_org'], info['file_composite'],
                                                  info['file_composite_format'])
     if file_composite is None:
-        return None
+        return [None]*2
     print(f'[INFO] Getting SST composite from {start_date.strftime("%Y-%m-%d")} to {end_date.strftime("%Y-%m-%d")} from file {file_composite}...')
     dcomp = Dataset(file_composite)
     array_out = np.squeeze(dcomp.variables[info['variable_composite']][:])
@@ -760,7 +760,7 @@ def get_mld_composite(input_date,info,week):
                                                  info['path_composite_org'], info['file_composite'],
                                                  info['file_composite_format'])
     if file_composite is None:
-        return None
+        return [None]*2
 
     print(f'[INFO] Getting MDL composite from {start_date.strftime("%Y-%m-%d")} to {end_date.strftime("%Y-%m-%d")} from file {file_composite}...')
     dcomp = Dataset(file_composite)
